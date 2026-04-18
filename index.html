@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="ja" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MILU | 車外から受ける同乗者効果による事故防止</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'milu-green': '#65a38a', // 目を刺激しすぎない色合い
+                        'milu-dark': '#121212',
+                    },
+                    fontFamily: {
+                        sans: ['"Noto Sans JP"', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;700;900&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
+    
+    <style>
+        body { font-family: 'Noto Sans JP', sans-serif; background-color: #121212; color: #f5f5f5; }
+        .glass-panel { background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.1); }
+        .text-gradient { background: linear-gradient(90deg, #65a38a, #a881af); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        #canvas-container { width: 100%; height: 60vh; cursor: grab; }
+        #canvas-container:active { cursor: grabbing; }
+    </style>
+</head>
+<body class="overflow-x-hidden">
+
+    <nav class="fixed w-full z-50 glass-panel px-6 py-4 flex justify-between items-center transition-all duration-300">
+        <div class="text-2xl font-black tracking-widest text-milu-green">MILU</div>
+        <ul class="hidden md:flex space-x-8 text-sm font-bold tracking-wide">
+            <li><a href="#about" class="hover:text-milu-green transition-colors">CONCEPT</a></li>
+            <li><a href="#design" class="hover:text-milu-green transition-colors">DESIGN</a></li>
+            <li><a href="#simulation" class="hover:text-milu-green transition-colors">SIMULATION</a></li>
+            <li><a href="#3dmodel" class="hover:text-milu-green transition-colors">3D MODEL</a></li>
+        </ul>
+    </nav>
+
+    <section class="relative h-screen flex items-center justify-center overflow-hidden">
+        <div class="absolute inset-0 z-0 opacity-30">
+            <img src="images/syoumen.png" alt="MILU Front" class="w-full h-full object-cover blur-sm scale-105" onerror="this.src='https://via.placeholder.com/1920x1080?text=syoumen.png'">
+        </div>
+        <div class="absolute inset-0 bg-gradient-to-b from-transparent to-milu-dark z-10"></div>
+        <div class="relative z-20 text-center px-4 max-w-4xl gs-reveal">
+            <h1 class="text-5xl md:text-7xl font-black mb-6 tracking-tighter leading-tight">
+                事故を防ぐ、<br><span class="text-gradient">街の「視線」</span>
+            </h1>
+            <p class="text-lg md:text-2xl font-light tracking-widest text-gray-300 mb-10">
+                車外から受ける同乗者効果による事故防止システム
+            </p>
+            <div class="w-24 h-1 bg-milu-green mx-auto mb-10 rounded-full"></div>
+            <p class="text-sm md:text-base text-gray-400 font-light tracking-wide leading-relaxed">
+                交通事故は多くの国でGDPの3%ほどの損失を出す、人類が直面する最も身近で最も大きな社会問題です。<br>
+                私たちは「視線」の力で、この問題に挑みます。
+            </p>
+        </div>
+    </section>
+
+    <section id="about" class="py-32 px-6 md:px-20 max-w-7xl mx-auto">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-16 items-center">
+            <div class="gs-fade-right">
+                <h2 class="text-sm font-bold text-milu-green tracking-[0.3em] mb-2">CONCEPT</h2>
+                <h3 class="text-3xl md:text-4xl font-bold mb-8">なぜ「目」なのか？</h3>
+                <p class="text-gray-300 leading-loose font-light mb-6">
+                    勉強支援サービス「milu」の検証において、目を中心にした製品を使用すると、人が他者の存在を感じて作業効率が上がる「観客効果」や親近感が働き、集中力が向上することが確認されました。
+                </p>
+                <p class="text-gray-300 leading-loose font-light">
+                    この心理的アプローチを交通安全に応用。町中に一定サイズの「目」を配置することで、運転者に疑似的な同乗者を与えます。誰かに見られているという適度な緊張感が覚醒水準を維持し、速度の安定化、ひいては事故の防止に繋がります。
+                </p>
+            </div>
+            <div class="gs-fade-left relative">
+                <div class="glass-panel p-2 rounded-2xl">
+                    <img src="images/syoumen.png" alt="MILU正面デザイン" class="w-full h-auto rounded-xl shadow-2xl" onerror="this.style.display='none';">
+                </div>
+                <div class="absolute -bottom-6 -right-6 w-32 h-32 bg-milu-green rounded-full mix-blend-overlay filter blur-2xl opacity-50"></div>
+            </div>
+        </div>
+    </section>
+
+    <section id="design" class="py-32 bg-zinc-900 border-y border-zinc-800">
+        <div class="max-w-7xl mx-auto px-6 md:px-20 text-center">
+            <h2 class="text-sm font-bold text-milu-green tracking-[0.3em] mb-2">DESIGN</h2>
+            <h3 class="text-3xl md:text-4xl font-bold mb-16">空間に溶け込む、機能的な造形</h3>
+            
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-10">
+                <div class="glass-panel p-8 rounded-2xl text-left gs-fade-up">
+                    <div class="text-4xl mb-4">🎨</div>
+                    <h4 class="text-xl font-bold mb-4">絶妙な色合い</h4>
+                    <p class="text-gray-400 font-light text-sm leading-relaxed">
+                        景観を破壊せず、かつ運転者の注意を引くため、弱すぎず目を刺激しすぎないマットなグリーンとグレーの配色を採用しています。
+                    </p>
+                </div>
+                <div class="glass-panel p-8 rounded-2xl text-left gs-fade-up" style="transition-delay: 0.1s;">
+                    <div class="text-4xl mb-4">🧊</div>
+                    <h4 class="text-xl font-bold mb-4">立体感の強調</h4>
+                    <p class="text-gray-400 font-light text-sm leading-relaxed">
+                        平面ではなく、曲線と球体を用いた3D構造にすることで、左右どちらの角度からでも「見られている」という立体感を強調し、同乗者効果を最大化します。
+                    </p>
+                </div>
+                <div class="glass-panel p-8 rounded-2xl text-left gs-fade-up" style="transition-delay: 0.2s;">
+                    <div class="text-4xl mb-4">🏢</div>
+                    <h4 class="text-xl font-bold mb-4">街への配置</h4>
+                    <p class="text-gray-400 font-light text-sm leading-relaxed">
+                        作品展示としての迫力を持たせつつ、ミニチュアを周囲に複数配置するなど、実際の都市空間でのスケール感を考慮した設計を行っています。
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="simulation" class="py-32 px-6 md:px-20 max-w-7xl mx-auto">
+        <div class="text-center mb-16 gs-reveal">
+            <h2 class="text-sm font-bold text-milu-green tracking-[0.3em] mb-2">SIMULATION</h2>
+            <h3 class="text-3xl md:text-4xl font-bold">ドライブシミュレータによる検証</h3>
+            <p class="mt-6 text-gray-400 font-light max-w-2xl mx-auto">
+                実際に町中にMILUが存在した場合の景色の変化や、運転への心理的効果を検証するため、専用のドライブシミュレータ環境を構築しました。
+            </p>
+        </div>
+        
+        <div class="relative w-full rounded-3xl overflow-hidden shadow-2xl glass-panel gs-fade-up">
+            <img src="images/drive.png" alt="ドライブシミュレータ画面" class="w-full h-auto object-cover" onerror="this.src='https://via.placeholder.com/1200x600?text=drive.png'">
+            <div class="absolute inset-0 bg-gradient-to-t from-milu-dark to-transparent opacity-80"></div>
+            <div class="absolute bottom-0 left-0 p-8">
+                <span class="px-3 py-1 bg-milu-green text-xs font-bold rounded-full mb-3 inline-block">EXPERIMENT</span>
+                <h4 class="text-2xl font-bold">仮想空間での実証</h4>
+            </div>
+        </div>
+    </section>
+
+    <section id="3dmodel" class="py-32 bg-black relative">
+        <div class="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-milu-green to-transparent opacity-50"></div>
+        <div class="max-w-7xl mx-auto px-6 md:px-20 text-center mb-10 gs-reveal">
+            <h2 class="text-sm font-bold text-milu-green tracking-[0.3em] mb-2">INTERACTIVE</h2>
+            <h3 class="text-3xl md:text-4xl font-bold">3D Model Viewer</h3>
+            <p class="text-gray-400 mt-4 text-sm">ドラッグで回転、スクロールでズームアウトが可能です。</p>
+        </div>
+        
+        <div id="canvas-container" class="relative max-w-5xl mx-auto rounded-2xl overflow-hidden glass-panel shadow-2xl gs-fade-up">
+            <div id="loading-indicator" class="absolute inset-0 flex items-center justify-center bg-zinc-900 z-10 transition-opacity duration-500">
+                <div class="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-milu-green"></div>
+            </div>
+        </div>
+    </section>
+
+    <footer class="bg-zinc-950 py-12 text-center border-t border-zinc-900">
+        <div class="text-2xl font-black tracking-widest text-zinc-700 mb-4">MILU</div>
+        <p class="text-xs text-zinc-600 font-light">卒業制作 - 車外から受ける同乗者効果による事故防止</p>
+    </footer>
+
+    <script>
+        gsap.registerPlugin(ScrollTrigger);
+
+        // フェードアップアニメーション
+        gsap.utils.toArray('.gs-fade-up').forEach(elem => {
+            gsap.fromTo(elem, 
+                { y: 50, opacity: 0 }, 
+                { y: 0, opacity: 1, duration: 1, ease: "power3.out", scrollTrigger: { trigger: elem, start: "top 85%" } }
+            );
+        });
+
+        // 左右からのフェードイン
+        gsap.fromTo('.gs-fade-right', { x: -50, opacity: 0 }, { x: 0, opacity: 1, duration: 1, ease: "power3.out", scrollTrigger: { trigger: '.gs-fade-right', start: "top 80%" } });
+        gsap.fromTo('.gs-fade-left', { x: 50, opacity: 0 }, { x: 0, opacity: 1, duration: 1, ease: "power3.out", scrollTrigger: { trigger: '.gs-fade-left', start: "top 80%" } });
+
+        // リビールアニメーション
+        gsap.utils.toArray('.gs-reveal').forEach(elem => {
+            gsap.fromTo(elem, 
+                { opacity: 0, scale: 0.95 }, 
+                { opacity: 1, scale: 1, duration: 1.5, ease: "expo.out", scrollTrigger: { trigger: elem, start: "top 80%" } }
+            );
+        });
+    </script>
+
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+                "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+            }
+        }
+    </script>
+    
+    <script type="module">
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+        import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+
+        const container = document.getElementById('canvas-container');
+        const loadingIndicator = document.getElementById('loading-indicator');
+
+        // シーン、カメラ、レンダラーのセットアップ
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color('#1a1a1a');
+        
+        const camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.1, 100);
+        camera.position.set(0, 0, 10);
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(container.clientWidth, container.clientHeight);
+        renderer.setPixelRatio(window.devicePixelRatio);
+        // トーンマッピング（質感を綺麗に出すため）
+        renderer.toneMapping = THREE.ACESFilmicToneMapping;
+        renderer.toneMappingExposure = 1.2;
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        container.appendChild(renderer.domElement);
+
+        // コントロール
+        const controls = new OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.05;
+        controls.autoRotate = true; // ゆっくり自動回転
+        controls.autoRotateSpeed = 2.0;
+
+        // ライティング
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+        scene.add(ambientLight);
+
+        const directionalLight = new THREE.DirectionalLight(0xffffff, 1.5);
+        directionalLight.position.set(5, 5, 5);
+        directionalLight.castShadow = true;
+        scene.add(directionalLight);
+
+        const fillLight = new THREE.DirectionalLight(0xa881af, 0.5); // アクセントの紫系ライト
+        fillLight.position.set(-5, 0, -5);
+        scene.add(fillLight);
+
+        // GLTFモデルの読み込み
+        const loader = new GLTFLoader();
+        loader.load(
+            'images/kaken.glb', // モデルのパス
+            function (gltf) {
+                const model = gltf.scene;
+                
+                // モデルを中央に配置する調整
+                const box = new THREE.Box3().setFromObject(model);
+                const center = box.getCenter(new THREE.Vector3());
+                model.position.sub(center); // センター合わせ
+                
+                // 影を落とす設定
+                model.traverse((node) => {
+                    if (node.isMesh) {
+                        node.castShadow = true;
+                        node.receiveShadow = true;
+                    }
+                });
+
+                // 表示用のグループに入れてシーンに追加
+                const group = new THREE.Group();
+                group.add(model);
+                scene.add(group);
+
+                // ローディングを消す
+                loadingIndicator.style.opacity = '0';
+                setTimeout(() => loadingIndicator.style.display = 'none', 500);
+            },
+            undefined,
+            function (error) {
+                console.error('モデルの読み込みに失敗しました', error);
+                loadingIndicator.innerHTML = '<p class="text-red-500">モデルの読み込みに失敗しました。ローカルサーバーで実行しているか確認してください。</p>';
+            }
+        );
+
+        // アニメーションループ
+        function animate() {
+            requestAnimationFrame(animate);
+            controls.update();
+            renderer.render(scene, camera);
+        }
+        animate();
+
+        // リサイズ対応
+        window.addEventListener('resize', () => {
+            if(container) {
+                camera.aspect = container.clientWidth / container.clientHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(container.clientWidth, container.clientHeight);
+            }
+        });
+    </script>
+</body>
+</html>
