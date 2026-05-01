@@ -60,7 +60,7 @@
             display: flex;
             justify-content: space-between;
             padding: calc(14px + var(--safe-top)) calc(18px + var(--safe-right)) 12px calc(18px + var(--safe-left));
-            background: linear-gradient(to bottom, rgba(0,0,0,0.7), rgba(0,0,0,0.1), transparent);
+            background: transparent;
         }
 
         #score-box {
@@ -128,7 +128,7 @@
             font-style: italic;
             opacity: 0;
             transition: opacity 0.2s;
-            text-shadow: 4px 4px 0 #000;
+            text-shadow: none;
         }
 
         .key {
@@ -445,71 +445,111 @@
         @media (pointer: coarse) and (orientation: landscape) {
             .top-bar {
                 padding-top: calc(8px + var(--safe-top));
+                padding-bottom: 6px;
+                background: transparent;
+            }
+
+            #score-box {
+                font-size: 12px;
+                text-shadow: none;
+            }
+
+            #disp-gear-mode {
+                font-size: 8px;
             }
 
             .dashboard {
-                padding-top: 10px;
-                padding-bottom: 8px;
-                gap: 12px;
+                padding-top: 6px;
+                padding-bottom: 4px;
+                gap: 10px;
             }
 
             .gauge-container {
-                width: 78px;
-                height: 78px;
-                border-width: 3px;
+                width: 64px;
+                height: 64px;
+                border-width: 2px;
             }
 
             .gauge-value {
-                font-size: 24px;
+                font-size: 18px;
+            }
+
+            .gauge-label {
+                bottom: 10px;
+                font-size: 7px;
             }
 
             .gear-display {
-                font-size: 28px;
+                font-size: 20px;
             }
 
             .mobile-controls {
                 gap: 6px;
-                padding-top: 6px;
-                padding-bottom: calc(6px + var(--safe-bottom));
+                padding: 4px calc(8px + var(--safe-right)) calc(4px + var(--safe-bottom)) calc(8px + var(--safe-left));
+                background: transparent;
+            }
+
+            .control-panel {
+                gap: 8px;
             }
 
             .controller-card {
-                padding: 8px 10px;
-                border-radius: 16px;
+                padding: 6px 8px;
+                border-radius: 14px;
+                background: rgba(255,255,255,0.04);
             }
 
             .controller-title {
-                margin-bottom: 4px;
-                font-size: 10px;
+                display: none;
             }
 
             .virtual-pad {
-                width: min(22vw, 150px);
+                width: min(18vw, 108px);
             }
 
             .gear-gate {
-                width: min(16vw, 118px);
-                border-radius: 16px;
+                width: min(14vw, 94px);
+                border-radius: 14px;
             }
 
             .gear-stick {
-                transform: scale(0.86);
+                transform: scale(0.68);
                 transform-origin: 50% 78%;
             }
 
             .shifter-readout strong {
-                font-size: 18px;
+                font-size: 14px;
             }
 
             .touch-btn {
-                min-height: 38px;
-                border-radius: 12px;
-                font-size: 11px;
+                min-height: 28px;
+                border-radius: 10px;
+                font-size: 9px;
+                padding: 0 8px;
+                min-width: 0;
+                box-shadow: none;
             }
 
             .pad-metrics,
             .shifter-readout {
-                font-size: 10px;
+                font-size: 8px;
+            }
+
+            .pad-metrics {
+                margin-top: 6px;
+            }
+
+            .pad-metrics span:last-child {
+                display: none;
+            }
+
+            .control-strip {
+                gap: 6px;
+            }
+
+            .control-strip .touch-btn {
+                min-height: 26px;
+                font-size: 9px;
             }
         }
 
@@ -902,7 +942,7 @@
         const matKakenPlaceholder = new THREE.MeshStandardMaterial({ color: 0xffff00 });
         
         kakenSpots.forEach(spot => {
-            loader.load('kaken.glb', (gltf) => {
+            loader.load('./images/kaken.glb', (gltf) => {
                 const model = gltf.scene;
                 model.position.set(spot.x, 6.0, spot.z);
                 model.rotation.y = spot.rot;
@@ -1399,8 +1439,12 @@
         }
 
         window.addEventListener('resize', resizeViewport);
+        window.addEventListener('orientationchange', () => {
+            setTimeout(resizeViewport, 150);
+        });
         window.visualViewport?.addEventListener('resize', resizeViewport);
         window.visualViewport?.addEventListener('scroll', resizeViewport);
+        window.addEventListener('pageshow', resizeViewport);
     </script>
 </body>
 </html>
