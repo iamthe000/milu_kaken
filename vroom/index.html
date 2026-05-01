@@ -1,0 +1,1409 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+    <title>vroom</title>
+    <style>
+        :root {
+            --app-height: 100dvh;
+            --safe-top: env(safe-area-inset-top, 0px);
+            --safe-right: env(safe-area-inset-right, 0px);
+            --safe-bottom: env(safe-area-inset-bottom, 0px);
+            --safe-left: env(safe-area-inset-left, 0px);
+        }
+
+        html, body {
+            width: 100%;
+            height: 100%;
+            margin: 0;
+            overflow: hidden;
+            background: #0b0e14;
+        }
+
+        body {
+            position: fixed;
+            inset: 0;
+            min-height: var(--app-height);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            overscroll-behavior: none;
+        }
+
+        canvas {
+            position: fixed;
+            inset: 0;
+            width: 100vw;
+            height: var(--app-height);
+            display: block;
+        }
+        
+        #ui-layer {
+            position: fixed;
+            inset: 0;
+            width: 100vw;
+            height: var(--app-height);
+            pointer-events: none;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            z-index: 2;
+        }
+
+        .interactive {
+            pointer-events: auto;
+            touch-action: none;
+            -webkit-user-select: none;
+            user-select: none;
+        }
+
+        .top-bar {
+            display: flex;
+            justify-content: space-between;
+            padding: calc(14px + var(--safe-top)) calc(18px + var(--safe-right)) 12px calc(18px + var(--safe-left));
+            background: linear-gradient(to bottom, rgba(0,0,0,0.7), rgba(0,0,0,0.1), transparent);
+        }
+
+        #score-box {
+            color: #ffcc00;
+            font-size: 24px;
+            font-weight: 900;
+            text-shadow: 0 0 10px #ffcc00;
+            font-style: italic;
+        }
+
+        #help-box {
+            color: rgba(255,255,255,0.8);
+            text-align: right;
+            font-size: 12px;
+            line-height: 1.5;
+        }
+
+        .dashboard {
+            display: flex;
+            align-items: flex-end;
+            padding: 22px calc(20px + var(--safe-right)) 18px calc(20px + var(--safe-left));
+            gap: 40px;
+            background: linear-gradient(to top, rgba(0,0,0,0.45), transparent 75%);
+        }
+
+        .gauge-container {
+            position: relative;
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            border: 4px solid #333;
+            background: rgba(0,0,0,0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .gauge-value {
+            color: #fff;
+            font-size: 32px;
+            font-weight: bold;
+            font-style: italic;
+        }
+        .gauge-label {
+            position: absolute;
+            bottom: 20px;
+            font-size: 10px;
+            color: #888;
+        }
+        .gear-display {
+            font-size: 40px;
+            color: #0ff;
+            font-weight: 900;
+            text-shadow: 0 0 10px #0ff;
+        }
+
+        #drift-msg {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 40px;
+            color: #ff3366;
+            font-weight: 900;
+            text-transform: uppercase;
+            font-style: italic;
+            opacity: 0;
+            transition: opacity 0.2s;
+            text-shadow: 4px 4px 0 #000;
+        }
+
+        .key {
+            display: inline-block;
+            background: #333;
+            color: #fff;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-weight: bold;
+            font-size: 10px;
+            margin: 0 2px;
+        }
+
+        .mobile-controls {
+            display: none;
+            gap: 12px;
+            padding: 10px calc(14px + var(--safe-right)) calc(10px + var(--safe-bottom)) calc(14px + var(--safe-left));
+            background: linear-gradient(to top, rgba(0,0,0,0.9), rgba(0,0,0,0.45) 55%, transparent);
+        }
+
+        .mobile-row {
+            display: flex;
+            gap: 12px;
+            align-items: stretch;
+        }
+
+        .control-panel {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+            gap: 14px;
+            align-items: end;
+        }
+
+        .controller-card {
+            position: relative;
+            border: 1px solid rgba(255,255,255,0.12);
+            border-radius: 24px;
+            padding: 14px;
+            background:
+                radial-gradient(circle at top, rgba(255,255,255,0.14), transparent 42%),
+                linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.02));
+            box-shadow: inset 0 1px 0 rgba(255,255,255,0.08), 0 12px 24px rgba(0,0,0,0.24);
+        }
+
+        .controller-title {
+            color: rgba(255,255,255,0.68);
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            margin-bottom: 10px;
+        }
+
+        .touch-btn {
+            appearance: none;
+            border: 1px solid rgba(255,255,255,0.18);
+            border-radius: 18px;
+            background: linear-gradient(180deg, rgba(255,255,255,0.16), rgba(255,255,255,0.06));
+            color: #fff;
+            font-weight: 800;
+            letter-spacing: 0.04em;
+            min-height: 64px;
+            min-width: 64px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.25);
+            text-shadow: 0 1px 0 rgba(0,0,0,0.4);
+            transition: transform 0.08s ease, background 0.08s ease, border-color 0.08s ease;
+        }
+
+        .touch-btn:active,
+        .touch-btn.active {
+            transform: scale(0.97);
+            background: linear-gradient(180deg, rgba(0,255,255,0.3), rgba(0,180,180,0.12));
+            border-color: rgba(0,255,255,0.55);
+        }
+
+        .touch-btn.muted {
+            background: linear-gradient(180deg, rgba(255,255,255,0.1), rgba(255,255,255,0.04));
+        }
+
+        .virtual-pad {
+            position: relative;
+            width: min(42vw, 230px);
+            aspect-ratio: 1;
+            margin: 0 auto;
+            border-radius: 50%;
+            background:
+                radial-gradient(circle at center, rgba(255,255,255,0.16), rgba(255,255,255,0.02) 54%, rgba(0,0,0,0.24) 55%),
+                radial-gradient(circle at center, rgba(0,220,255,0.1), transparent 70%);
+            border: 1px solid rgba(255,255,255,0.12);
+            box-shadow: inset 0 0 40px rgba(0,0,0,0.25);
+        }
+
+        .virtual-pad::before,
+        .virtual-pad::after {
+            content: '';
+            position: absolute;
+            inset: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(255,255,255,0.08);
+        }
+
+        .virtual-pad::before {
+            width: 2px;
+            height: 78%;
+        }
+
+        .virtual-pad::after {
+            width: 78%;
+            height: 2px;
+        }
+
+        .virtual-pad .pad-label {
+            position: absolute;
+            color: rgba(255,255,255,0.48);
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.06em;
+            pointer-events: none;
+        }
+
+        .virtual-pad .pad-label.up { top: 16px; left: 50%; transform: translateX(-50%); }
+        .virtual-pad .pad-label.down { bottom: 16px; left: 50%; transform: translateX(-50%); }
+        .virtual-pad .pad-label.left { left: 16px; top: 50%; transform: translateY(-50%); }
+        .virtual-pad .pad-label.right { right: 16px; top: 50%; transform: translateY(-50%); }
+
+        .pad-knob {
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            width: 34%;
+            aspect-ratio: 1;
+            transform: translate(-50%, -50%);
+            border-radius: 50%;
+            background:
+                radial-gradient(circle at 30% 30%, rgba(255,255,255,0.38), rgba(255,255,255,0.12) 35%, rgba(0,0,0,0.35) 100%),
+                linear-gradient(180deg, rgba(0,210,255,0.32), rgba(0,85,140,0.35));
+            border: 1px solid rgba(255,255,255,0.18);
+            box-shadow: 0 10px 26px rgba(0,0,0,0.32);
+            transition: transform 0.08s linear;
+            pointer-events: none;
+        }
+
+        .pad-metrics {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 10px;
+            color: rgba(255,255,255,0.58);
+            font-size: 11px;
+            letter-spacing: 0.04em;
+        }
+
+        .shifter-wrap {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+
+        .gear-gate {
+            position: relative;
+            width: min(34vw, 180px);
+            aspect-ratio: 0.8;
+            border-radius: 24px;
+            background:
+                radial-gradient(circle at top, rgba(255,255,255,0.14), transparent 40%),
+                linear-gradient(180deg, rgba(255,255,255,0.06), rgba(0,0,0,0.18));
+            border: 1px solid rgba(255,255,255,0.14);
+            overflow: hidden;
+        }
+
+        .gate-line {
+            position: absolute;
+            background: rgba(255,255,255,0.14);
+            border-radius: 999px;
+        }
+
+        .gate-line.left {
+            width: 4px;
+            left: 24%;
+            top: 10%;
+            bottom: 34%;
+        }
+
+        .gate-line.right {
+            width: 4px;
+            right: 24%;
+            top: 10%;
+            bottom: 10%;
+        }
+
+        .gate-line.cross {
+            height: 4px;
+            left: 24%;
+            right: 24%;
+            top: 46%;
+        }
+
+        .gate-slot {
+            position: absolute;
+            width: 38px;
+            height: 38px;
+            margin-left: -19px;
+            margin-top: -19px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: rgba(255,255,255,0.62);
+            font-weight: 800;
+            font-size: 15px;
+            border: 1px solid rgba(255,255,255,0.12);
+            background: rgba(255,255,255,0.05);
+            box-shadow: inset 0 1px 0 rgba(255,255,255,0.05);
+            transition: border-color 0.12s ease, color 0.12s ease, background 0.12s ease;
+        }
+
+        .gate-slot.selected {
+            color: #fff7d1;
+            border-color: rgba(255, 210, 70, 0.8);
+            background: rgba(255, 180, 0, 0.18);
+        }
+
+        .gear-stick {
+            position: absolute;
+            width: 30px;
+            height: 72px;
+            margin-left: -15px;
+            margin-top: -56px;
+            transform-origin: 50% 78%;
+            transition: left 0.1s ease, top 0.1s ease;
+        }
+
+        .gear-stick.dragging {
+            transition: none;
+        }
+
+        .gear-stick::before {
+            content: '';
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            bottom: 8px;
+            width: 8px;
+            height: 48px;
+            border-radius: 999px;
+            background: linear-gradient(180deg, rgba(255,255,255,0.75), rgba(90,90,90,0.5));
+        }
+
+        .gear-stick::after {
+            content: '';
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            top: 0;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            background:
+                radial-gradient(circle at 35% 30%, rgba(255,255,255,0.42), rgba(255,255,255,0.14) 40%, rgba(0,0,0,0.4) 100%),
+                linear-gradient(180deg, rgba(0,255,255,0.36), rgba(0,120,160,0.28));
+            border: 1px solid rgba(255,255,255,0.18);
+            box-shadow: 0 8px 16px rgba(0,0,0,0.32);
+        }
+
+        .shifter-meta {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .shifter-readout {
+            color: rgba(255,255,255,0.82);
+            font-size: 12px;
+            line-height: 1.4;
+        }
+
+        .shifter-readout strong {
+            display: block;
+            font-size: 22px;
+            color: #fff;
+            letter-spacing: 0.08em;
+        }
+
+        .control-strip {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .rotate-notice {
+            display: none;
+            position: fixed;
+            inset: 0;
+            z-index: 5;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+            text-align: center;
+            color: #fff;
+            background: rgba(6, 8, 12, 0.94);
+            font-weight: 700;
+            letter-spacing: 0.04em;
+        }
+
+        @media (max-width: 900px), (pointer: coarse) {
+            #help-box { display: none; }
+            .dashboard { padding: 12px calc(14px + var(--safe-right)) 10px calc(14px + var(--safe-left)); gap: 16px; }
+            .mobile-controls { display: flex; flex-direction: column; }
+            .top-bar { padding: calc(10px + var(--safe-top)) calc(14px + var(--safe-right)) 8px calc(14px + var(--safe-left)); }
+            .gauge-container { width: 100px; height: 100px; }
+            .gauge-value { font-size: 28px; }
+            .gear-display { font-size: 32px; }
+            .control-panel { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+            .shifter-wrap { flex-direction: column; align-items: stretch; }
+            .gear-gate { width: min(34vw, 170px); margin: 0 auto; }
+            .control-strip .touch-btn { min-height: 52px; font-size: 13px; }
+        }
+
+        @media (pointer: coarse) and (orientation: landscape) {
+            .top-bar {
+                padding-top: calc(8px + var(--safe-top));
+            }
+
+            .dashboard {
+                padding-top: 10px;
+                padding-bottom: 8px;
+                gap: 12px;
+            }
+
+            .gauge-container {
+                width: 78px;
+                height: 78px;
+                border-width: 3px;
+            }
+
+            .gauge-value {
+                font-size: 24px;
+            }
+
+            .gear-display {
+                font-size: 28px;
+            }
+
+            .mobile-controls {
+                gap: 8px;
+                padding-top: 8px;
+            }
+
+            .controller-card {
+                padding: 10px 12px;
+                border-radius: 18px;
+            }
+
+            .controller-title {
+                margin-bottom: 6px;
+                font-size: 10px;
+            }
+
+            .virtual-pad {
+                width: min(24vw, 170px);
+            }
+
+            .gear-gate {
+                width: min(18vw, 128px);
+                border-radius: 18px;
+            }
+
+            .gear-stick {
+                transform: scale(0.86);
+                transform-origin: 50% 78%;
+            }
+
+            .shifter-readout strong {
+                font-size: 18px;
+            }
+
+            .touch-btn {
+                min-height: 40px;
+                border-radius: 14px;
+                font-size: 12px;
+            }
+
+            .pad-metrics,
+            .shifter-readout {
+                font-size: 10px;
+            }
+        }
+
+        @media (pointer: coarse) and (orientation: portrait) {
+            .rotate-notice {
+                display: flex;
+            }
+
+            #ui-layer {
+                visibility: hidden;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="ui-layer">
+        <div class="top-bar">
+            <div id="score-box">SCORE: <span id="score-val">0</span></div>
+            <div id="help-box">
+                <span class="key">W</span> アクセル <span class="key">S</span> ブレーキ/バック<br>
+                <span class="key">A</span> <span class="key">D</span> ステアリング<br>
+                <span class="key">SPACE</span> ハンドブレーキ(ドリフト)<br>
+                <span class="key">T</span> 時間変更 (昼/夕/夜)<br>
+                <span class="key">R</span> リセット<br>
+                <span class="key">M</span> ギアモード <span class="key">Q</span><span class="key">E</span> シフト
+            </div>
+        </div>
+
+        <div id="drift-msg">DRIFT!</div>
+
+        <div class="dashboard">
+            <div style="text-align: center;">
+                <div class="gear-display" id="disp-gear">N</div>
+                <div style="color:#aaa; font-size:10px;">GEAR</div>
+                <div id="disp-gear-mode" style="color:#aaa; font-size:10px; margin-top: 5px;">AUTO</div>
+            </div>
+
+            <div class="gauge-container">
+                <div class="gauge-value" id="disp-speed">0</div>
+                <div class="gauge-label">KM/H</div>
+                <div id="rpm-bar" style="position:absolute; bottom:0; left:0; height:4px; background:#f00; width:0%; transition: width 0.1s;"></div>
+            </div>
+        </div>
+
+        <div class="mobile-controls interactive" id="mobile-controls">
+            <div class="control-panel">
+                <div class="controller-card">
+                    <div class="controller-title">DRIVE PAD</div>
+                    <div class="virtual-pad" id="drive-pad">
+                        <span class="pad-label up">ACCEL</span>
+                        <span class="pad-label down">BRAKE</span>
+                        <span class="pad-label left">LEFT</span>
+                        <span class="pad-label right">RIGHT</span>
+                        <div class="pad-knob" id="drive-pad-knob"></div>
+                    </div>
+                    <div class="pad-metrics">
+                        <span id="pad-steer-readout">STEER 0%</span>
+                        <span id="pad-drive-readout">THR 0%</span>
+                    </div>
+                </div>
+
+                <div class="controller-card">
+                    <div class="controller-title">H-SHIFTER</div>
+                    <div class="shifter-wrap">
+                        <div class="gear-gate" id="gear-gate">
+                            <div class="gate-line left"></div>
+                            <div class="gate-line right"></div>
+                            <div class="gate-line cross"></div>
+                            <div class="gate-slot" data-gear="-1" style="left:24%; top:18%;">R</div>
+                            <div class="gate-slot" data-gear="1" style="left:76%; top:18%;">1</div>
+                            <div class="gate-slot" data-gear="0" style="left:50%; top:46%;">N</div>
+                            <div class="gate-slot" data-gear="2" style="left:76%; top:46%;">2</div>
+                            <div class="gate-slot" data-gear="3" style="left:76%; top:74%;">3</div>
+                            <div class="gear-stick" id="gear-stick"></div>
+                        </div>
+                        <div class="shifter-meta">
+                            <div class="shifter-readout">SELECTED<strong id="shifter-readout">N</strong></div>
+                            <button class="touch-btn muted" id="btn-drift">DRIFT</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="control-strip">
+                <button class="touch-btn" id="btn-gear-mode">AUTO / MANUAL</button>
+                <button class="touch-btn" id="btn-reset">RESET</button>
+                <button class="touch-btn" id="btn-time">DAY / NIGHT</button>
+            </div>
+            <div class="pad-metrics">
+                <span>左パッド: 走行 / 操舵</span>
+                <span>右シフター: ドラッグで変速</span>
+            </div>
+        </div>
+    </div>
+    <div class="rotate-notice">横画面でプレイしてください</div>
+
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+                "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+            }
+        }
+    </script>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+
+        const TILE_SIZE = 50;
+        const SIDEWALK_INSET = 4;
+        const WORLD_OFFSET_X = -400;
+        const WORLD_OFFSET_Z = -400;
+        
+        // 0:道路, 1:民家, 2:店舗/ビル, 3:田畑/空き地, 4:林, 9:スタート
+        const mapData = [
+            [4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4],
+            [4,1,3,1,0,3,3,2,0,1,1,3,3,4,4,4],
+            [4,1,1,3,0,1,1,1,0,3,1,2,1,4,4,4],
+            [4,0,0,0,0,0,0,0,0,0,0,0,0,4,4,4],
+            [4,3,2,0,3,3,1,0,3,2,1,1,0,4,4,4],
+            [4,1,1,0,1,1,3,0,1,1,3,3,0,4,4,4],
+            [4,0,0,0,0,0,0,0,0,0,0,0,0,4,4,4],
+            [4,1,3,0,3,4,4,0,3,1,9,1,0,4,4,4],
+            [4,2,2,0,4,4,4,0,1,1,0,0,0,4,4,4],
+            [4,3,3,0,3,3,1,0,2,2,0,3,3,4,4,4],
+            [4,0,0,0,0,0,0,0,0,0,0,1,1,4,4,4],
+            [4,1,1,3,1,0,3,3,1,0,3,3,1,4,4,4],
+            [4,3,3,3,2,0,1,1,2,0,1,1,3,4,4,4],
+            [4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4],
+        ];
+
+        function createRoadTexture(connections) {
+            const canvas = document.createElement('canvas');
+            const size = 256;
+            canvas.width = size;
+            canvas.height = size;
+            const ctx = canvas.getContext('2d');
+
+            // road surface
+            ctx.fillStyle = '#333';
+            ctx.fillRect(0, 0, size, size);
+            addNoise(ctx, size, size, 0.05);
+
+            const lineWidth = 4;
+            const centerLineDash = [20, 20]; // 破線の描画設定
+            const centerLineOffset = 15;
+            const edgeLineOffset = 10;
+
+            // connections = { top: bool, bottom: bool, left: bool, right: bool }
+            const connCount = Object.values(connections).filter(c => c).length;
+
+            // Draw edge lines
+            ctx.fillStyle = '#fff';
+            if (!connections.top) ctx.fillRect(0, edgeLineOffset, size, lineWidth);
+            if (!connections.bottom) ctx.fillRect(0, size - edgeLineOffset - lineWidth, size, lineWidth);
+            if (!connections.left) ctx.fillRect(edgeLineOffset, 0, lineWidth, size);
+            if (!connections.right) ctx.fillRect(size - edgeLineOffset - lineWidth, 0, lineWidth, size);
+
+            // Draw center lines
+            ctx.strokeStyle = '#ffcc00';
+            ctx.lineWidth = lineWidth;
+            
+            if (connections.top && connections.bottom && !connections.left && !connections.right) {
+                // Vertical road
+                ctx.setLineDash(centerLineDash);
+                ctx.beginPath();
+                ctx.moveTo(size / 2, 0);
+                ctx.lineTo(size / 2, size);
+                ctx.stroke();
+            } else if (connections.left && connections.right && !connections.top && !connections.bottom) {
+                // Horizontal road
+                ctx.setLineDash(centerLineDash);
+                ctx.beginPath();
+                ctx.moveTo(0, size / 2);
+                ctx.lineTo(size, size / 2);
+                ctx.stroke();
+            } else if (connCount === 2) { // Curves
+                 ctx.setLineDash([]);
+                 ctx.beginPath();
+                 const r = size/2 - centerLineOffset;
+                 if(connections.bottom && connections.right) ctx.arc(size - (edgeLineOffset+lineWidth), size - (edgeLineOffset+lineWidth), r, Math.PI/2, Math.PI, false);
+                 if(connections.bottom && connections.left)  ctx.arc(edgeLineOffset+lineWidth, size - (edgeLineOffset+lineWidth), r, 0, Math.PI/2, false);
+                 if(connections.top && connections.right)    ctx.arc(size - (edgeLineOffset+lineWidth), edgeLineOffset+lineWidth, r, Math.PI, 3*Math.PI/2, false);
+                 if(connections.top && connections.left)     ctx.arc(edgeLineOffset+lineWidth, edgeLineOffset+lineWidth, r, 3*Math.PI/2, 2*Math.PI, false);
+                 ctx.stroke();
+            } else if (connCount > 2) {
+                // T-junctions and Crossroads: No center lines
+            }
+
+            const tex = new THREE.CanvasTexture(canvas);
+            tex.wrapS = THREE.RepeatWrapping;
+            tex.wrapT = THREE.RepeatWrapping;
+            return tex;
+        }
+
+        function createTexture(type) {
+            const canvas = document.createElement('canvas');
+            canvas.width = 256; canvas.height = 256;
+            const ctx = canvas.getContext('2d');
+
+            if (type === 'grass') {
+                ctx.fillStyle = '#2d5a27'; ctx.fillRect(0,0,256,256);
+                addNoise(ctx, 256, 256, 0.2);
+            } else if (type === 'wall') {
+                ctx.fillStyle = '#e0d5c1'; ctx.fillRect(0,0,256,256);
+                ctx.fillStyle = '#4a5c66';
+                for(let y=20; y<256; y+=60) for(let x=20; x<256; x+=50) ctx.fillRect(x, y, 30, 40);
+            }
+            const tex = new THREE.CanvasTexture(canvas);
+            tex.wrapS = THREE.RepeatWrapping; tex.wrapT = THREE.RepeatWrapping;
+            return tex;
+        }
+
+        function addNoise(ctx, w, h, alpha) {
+            const id = ctx.getImageData(0,0,w,h);
+            const d = id.data;
+            for(let i=0; i<d.length; i+=4) {
+                const r = Math.random() * 255;
+                d[i] = d[i]*(1-alpha) + r*alpha;
+                d[i+1] = d[i+1]*(1-alpha) + r*alpha;
+                d[i+2] = d[i+2]*(1-alpha) + r*alpha;
+            }
+            ctx.putImageData(id, 0, 0);
+        }
+
+        const scene = new THREE.Scene();
+        scene.fog = new THREE.FogExp2(0xaaccff, 0.003);
+        scene.background = new THREE.Color(0xaaccff);
+
+        function getViewportSize() {
+            const vv = window.visualViewport;
+            return {
+                width: Math.round(vv ? vv.width : window.innerWidth),
+                height: Math.round(vv ? vv.height : window.innerHeight),
+            };
+        }
+
+        function syncAppHeight() {
+            const { height } = getViewportSize();
+            document.documentElement.style.setProperty('--app-height', `${height}px`);
+        }
+
+        const initialViewport = getViewportSize();
+        syncAppHeight();
+
+        const camera = new THREE.PerspectiveCamera(60, initialViewport.width / initialViewport.height, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+        renderer.setSize(initialViewport.width, initialViewport.height, false);
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        document.body.appendChild(renderer.domElement);
+
+        const texGrass = createTexture('grass');
+        const texWall = createTexture('wall');
+
+        const matGrass = new THREE.MeshStandardMaterial({ map: texGrass, roughness: 1.0 });
+        const matSidewalk = new THREE.MeshStandardMaterial({ color: 0x888888 });
+        const matWall = new THREE.MeshStandardMaterial({ map: texWall });
+        const matRoof = new THREE.MeshStandardMaterial({ color: 0x8B4513 });
+        const matTree = new THREE.MeshStandardMaterial({ color: 0x004400 });
+        const matTrunk = new THREE.MeshStandardMaterial({ color: 0x553311 });
+        const matOrb = new THREE.MeshBasicMaterial({ color: 0xffff00 });
+
+        const colliders = [];
+        const orbs = [];
+        const kakenSpots = [];
+
+        const sea = new THREE.Mesh(new THREE.PlaneGeometry(3000, 3000), new THREE.MeshBasicMaterial({ color: 0x001133 }));
+        sea.rotation.x = -Math.PI/2; sea.position.y = -40; scene.add(sea);
+
+        const mapW = mapData[0].length * TILE_SIZE;
+        const mapH = mapData.length * TILE_SIZE;
+        const island = new THREE.Mesh(new THREE.BoxGeometry(mapW, 40, mapH), new THREE.MeshStandardMaterial({ color: 0x444444 }));
+        island.position.set(mapW/2 + WORLD_OFFSET_X - TILE_SIZE/2, -20, mapH/2 + WORLD_OFFSET_Z - TILE_SIZE/2);
+        scene.add(island);
+
+        function generateWorld() {
+            const roadMaterialCache = {};
+
+            for(let z=0; z<mapData.length; z++) {
+                for(let x=0; x<mapData[z].length; x++) {
+                    const type = mapData[z][x];
+                    const px = x * TILE_SIZE + WORLD_OFFSET_X;
+                    const pz = z * TILE_SIZE + WORLD_OFFSET_Z;
+
+                    if(type !== 0 && type !== 9) {
+                        const g = new THREE.Mesh(new THREE.PlaneGeometry(TILE_SIZE, TILE_SIZE), matGrass);
+                        g.rotation.x = -Math.PI/2; g.position.set(px, 0.1, pz); g.receiveShadow = true; scene.add(g);
+                        
+                        // Add sidewalks next to roads
+                        const neighbors = [{x:0, z:-1}, {x:0, z:1}, {x:-1, z:0}, {x:1, z:0}];
+                        for (const n of neighbors) {
+                            const nx = x + n.x;
+                            const nz = z + n.z;
+                            if (nx >= 0 && nx < mapData[0].length && nz >= 0 && nz < mapData.length) {
+                                const neighborType = mapData[nz][nx];
+                                if (neighborType === 0 || neighborType === 9) {
+                                    const isVertical = n.x !== 0;
+                                    const sw = isVertical ? SIDEWALK_INSET : TILE_SIZE;
+                                    const sh = 0.2;
+                                    const sd = isVertical ? TILE_SIZE : SIDEWALK_INSET;
+                                    const sidewalk = new THREE.Mesh(new THREE.BoxGeometry(sw, sh, sd), matSidewalk);
+                                    sidewalk.position.set(
+                                        px + n.x * (TILE_SIZE - sw) / 2,
+                                        sh / 2,
+                                        pz + n.z * (TILE_SIZE - sd) / 2
+                                    );
+                                    sidewalk.receiveShadow = true;
+                                    scene.add(sidewalk);
+                                }
+                            }
+                        }
+
+                    }
+                    if (type === 0 || type === 9) {
+                        const connections = {
+                            top: z > 0 && (mapData[z-1][x] === 0 || mapData[z-1][x] === 9),
+                            bottom: z < mapData.length - 1 && (mapData[z+1][x] === 0 || mapData[z+1][x] === 9),
+                            left: x > 0 && (mapData[z][x-1] === 0 || mapData[z][x-1] === 9),
+                            right: x < mapData[z].length - 1 && (mapData[z][x+1] === 0 || mapData[z][x+1] === 9)
+                        };
+                        const connCount = Object.values(connections).filter(c => c).length;
+                        const key = Object.values(connections).map(c => c ? 't' : 'f').join('-');
+
+                        // Accident-prone spot detection
+                        if (connCount === 1) {
+                            if (connections.top) kakenSpots.push({ x: px, z: pz + 20, rot: 0 });
+                            else if (connections.bottom) kakenSpots.push({ x: px, z: pz - 20, rot: Math.PI });
+                            else if (connections.left) kakenSpots.push({ x: px + 20, z: pz, rot: -Math.PI / 2 });
+                            else if (connections.right) kakenSpots.push({ x: px - 20, z: pz, rot: Math.PI / 2 });
+                        } else if (connCount === 2) {
+                            if (!((connections.top && connections.bottom) || (connections.left && connections.right))) {
+                                if (connections.top && connections.left) kakenSpots.push({ x: px + 20, z: pz + 20, rot: 0 });
+                                else if (connections.top && connections.right) kakenSpots.push({ x: px - 20, z: pz + 20, rot: 0 });
+                                else if (connections.bottom && connections.left) kakenSpots.push({ x: px + 20, z: pz - 20, rot: 0 });
+                                else if (connections.bottom && connections.right) kakenSpots.push({ x: px - 20, z: pz - 20, rot: 0 });
+                            }
+                        } else if (connCount === 3) {
+                            if (!connections.top) kakenSpots.push({ x: px, z: pz - 22, rot: 0 });
+                            else if (!connections.bottom) kakenSpots.push({ x: px, z: pz + 22, rot: Math.PI });
+                            else if (!connections.left) kakenSpots.push({ x: px - 22, z: pz, rot: -Math.PI / 2 });
+                            else if (!connections.right) kakenSpots.push({ x: px + 22, z: pz, rot: Math.PI / 2 });
+                        }
+                        
+                        if (!roadMaterialCache[key]) {
+                            const roadTex = createRoadTexture(connections);
+                            roadMaterialCache[key] = new THREE.MeshStandardMaterial({ map: roadTex, roughness: 0.8 });
+                        }
+                        
+                        const r = new THREE.Mesh(new THREE.PlaneGeometry(TILE_SIZE, TILE_SIZE), roadMaterialCache[key]);
+                        r.rotation.x = -Math.PI/2;
+                        r.position.set(px, 0.15, pz); r.receiveShadow = true; scene.add(r);
+
+                        if(Math.random() < 0.3 && type !== 9) {
+                            const orb = new THREE.Mesh(new THREE.SphereGeometry(1, 16, 16), matOrb);
+                            orb.position.set(px + (Math.random()-0.5)*20, 1.5, pz + (Math.random()-0.5)*20);
+                            scene.add(orb); orbs.push(orb);
+                            const pLight = new THREE.PointLight(0xffff00, 1, 10);
+                            pLight.position.copy(orb.position); scene.add(pLight);
+                            orb.userData = { light: pLight, active: true };
+                        }
+                    } else if (type === 1 || type === 2) {
+                        const buildingSize = TILE_SIZE - SIDEWALK_INSET * 2;
+                        const h = type===1 ? 8 + Math.random()*5 : 15 + Math.random()*10;
+                        const b = new THREE.Mesh(new THREE.BoxGeometry(buildingSize, h, buildingSize), matWall);
+                        b.position.set(px, h/2, pz); b.castShadow = true; b.receiveShadow = true; scene.add(b);
+                        const roof = new THREE.Mesh(new THREE.ConeGeometry(buildingSize / Math.sqrt(2), 6, 4), matRoof);
+                        roof.position.set(px, h + 3, pz); roof.rotation.y = Math.PI/4; scene.add(roof);
+                        colliders.push({minX: px - buildingSize / 2, maxX: px + buildingSize / 2, minZ: pz - buildingSize / 2, maxZ: pz + buildingSize / 2});
+                    } else if (type === 4) {
+                        for(let i=0; i<3; i++) {
+                            const tx = px + (Math.random()-0.5)*30; const tz = pz + (Math.random()-0.5)*30;
+                            const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.8, 3), matTrunk);
+                            trunk.position.set(tx, 1.5, tz); scene.add(trunk);
+                            const leaves = new THREE.Mesh(new THREE.ConeGeometry(3, 8, 8), matTree);
+                            leaves.position.set(tx, 6, tz); leaves.castShadow = true; scene.add(leaves);
+                        }
+                        colliders.push({minX: px-20, maxX: px+20, minZ: pz-20, maxZ: pz+20});
+                    }
+                }
+            }
+        }
+        generateWorld();
+
+        // Load kaken.glb and place at spots
+        const loader = new GLTFLoader();
+        const matKakenPlaceholder = new THREE.MeshStandardMaterial({ color: 0xffff00 });
+        
+        kakenSpots.forEach(spot => {
+            loader.load('kaken.glb', (gltf) => {
+                const model = gltf.scene;
+                model.position.set(spot.x, 6.0, spot.z);
+                model.rotation.y = spot.rot;
+                model.scale.set(3, 3, 3);
+                scene.add(model);
+                // Add to colliders after loading
+                colliders.push({
+                    minX: spot.x - 2.5, maxX: spot.x + 2.5,
+                    minZ: spot.z - 2.5, maxZ: spot.z + 2.5
+                });
+            }, undefined, (error) => {
+                // Fallback to placeholder if not found
+                const placeholder = new THREE.Mesh(new THREE.BoxGeometry(5, 5, 5), matKakenPlaceholder);
+                placeholder.position.set(spot.x, 2.5, spot.z);
+                placeholder.rotation.y = spot.rot;
+                scene.add(placeholder);
+                colliders.push({
+                    minX: spot.x - 2.5, maxX: spot.x + 2.5,
+                    minZ: spot.z - 2.5, maxZ: spot.z + 2.5
+                });
+            });
+        });
+
+        const carGroup = new THREE.Group();
+        const carBodyGroup = new THREE.Group();
+        carBodyGroup.rotation.y = Math.PI;
+        carGroup.add(carBodyGroup);
+
+        const chassis = new THREE.Mesh(new THREE.BoxGeometry(1.9, 0.7, 4.4), new THREE.MeshStandardMaterial({ color: 0xeeeeee, metalness: 0.7, roughness: 0.1 }));
+        chassis.position.y = 0.6; chassis.castShadow = true; carBodyGroup.add(chassis);
+        
+        const cabin = new THREE.Mesh(new THREE.BoxGeometry(1.7, 0.6, 2.5), new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.0 }));
+        cabin.position.set(0, 1.2, -0.2); carBodyGroup.add(cabin);
+        
+        const spoiler = new THREE.Mesh(new THREE.BoxGeometry(1.8, 0.1, 0.4), new THREE.MeshStandardMaterial({ color: 0x111111 }));
+        spoiler.position.set(0, 1.1, 2.0); carBodyGroup.add(spoiler);
+
+        const headLightL = new THREE.SpotLight(0xffffee, 0); 
+        headLightL.angle = Math.PI / 6; headLightL.penumbra = 0.2; headLightL.distance = 100; headLightL.decay = 2;
+        headLightL.position.set(0.6, 0.7, -2.0); headLightL.target.position.set(0.6, 0.5, -10);
+        carBodyGroup.add(headLightL); carBodyGroup.add(headLightL.target);
+        
+        const headLightR = headLightL.clone();
+        headLightR.position.set(-0.6, 0.7, -2.0); headLightR.target.position.set(-0.6, 0.5, -10);
+        carBodyGroup.add(headLightR); carBodyGroup.add(headLightR.target);
+        scene.add(carGroup);
+
+        let startX=0, startZ=0;
+        mapData.forEach((row, z) => row.forEach((type, x) => {
+            if(type===9){ startX = x*TILE_SIZE+WORLD_OFFSET_X; startZ = z*TILE_SIZE+WORLD_OFFSET_Z; }
+        }));
+        
+        const carPhysics = {
+            speed: 0,
+            maxSpeed: 2.2,
+            accel: 0.03,
+            brake: 0.08,
+            friction: 0.985,
+            angle: Math.PI,
+            driftAngle: 0,
+            slide: 0,
+            isDrifting: false,
+            isFalling: false,
+            fallVel: 0,
+            isManualGear: false,
+            currentGear: 0, // 0:N, -1:R, 1-3:Fwd
+        };
+
+        function resetCar() {
+            carGroup.position.set(startX, 0.5, startZ);
+            carGroup.rotation.set(0, Math.PI, 0);
+            carPhysics.speed = 0;
+            carPhysics.driftAngle = 0;
+            carPhysics.slide = 0;
+            carPhysics.isFalling = false;
+            carPhysics.fallVel = 0;
+        }
+        resetCar();
+
+        const GEAR_MAX_SPEED = {'-1': 0.8, '0': 0, '1': 0.8, '2': 1.6, '3': 2.2};
+
+        const keys = { w:false, a:false, s:false, d:false, space:false, q:false, e:false };
+        const touchState = {
+            throttle: 0,
+            brake: 0,
+            steer: 0,
+            drift: false,
+            drivePointerId: null,
+            shifterPointerId: null,
+        };
+        const gearLayout = {
+            '-1': { x: 0.24, y: 0.18, label: 'R' },
+            '0': { x: 0.50, y: 0.46, label: 'N' },
+            '1': { x: 0.76, y: 0.18, label: '1' },
+            '2': { x: 0.76, y: 0.46, label: '2' },
+            '3': { x: 0.76, y: 0.74, label: '3' },
+        };
+
+        function bindHoldButton(button, onDown, onUp) {
+            if (!button) return;
+            const start = (ev) => {
+                ev.preventDefault();
+                onDown();
+                button.classList.add('active');
+                button.setPointerCapture?.(ev.pointerId);
+            };
+            const end = (ev) => {
+                ev.preventDefault();
+                onUp();
+                button.classList.remove('active');
+            };
+            button.addEventListener('pointerdown', start);
+            button.addEventListener('pointerup', end);
+            button.addEventListener('pointercancel', end);
+            button.addEventListener('pointerleave', (ev) => {
+                if (ev.buttons === 0) end(ev);
+            });
+        }
+
+        function getGearLabel(gear) {
+            if (gear === -1) return 'R';
+            if (gear === 0) return 'N';
+            return String(gear);
+        }
+
+        function updateDrivePadUI() {
+            const knob = document.getElementById('drive-pad-knob');
+            const steerReadout = document.getElementById('pad-steer-readout');
+            const driveReadout = document.getElementById('pad-drive-readout');
+            if (knob) {
+                const offsetX = touchState.steer * 70;
+                const netDrive = (touchState.brake - touchState.throttle) * 70;
+                knob.style.transform = `translate(calc(-50% + ${offsetX}px), calc(-50% + ${netDrive}px))`;
+            }
+            if (steerReadout) {
+                steerReadout.innerText = `STEER ${Math.round(Math.abs(touchState.steer) * 100)}%`;
+            }
+            if (driveReadout) {
+                const mode = touchState.throttle >= touchState.brake ? 'THR' : 'BRK';
+                const amount = Math.round(Math.max(touchState.throttle, touchState.brake) * 100);
+                driveReadout.innerText = `${mode} ${amount}%`;
+            }
+        }
+
+        function updateShifterUI() {
+            document.querySelectorAll('.gate-slot[data-gear]').forEach(btn => {
+                btn.classList.toggle('selected', Number(btn.dataset.gear) === carPhysics.currentGear);
+            });
+            const gearStick = document.getElementById('gear-stick');
+            const readout = document.getElementById('shifter-readout');
+            const point = gearLayout[String(carPhysics.currentGear)] || gearLayout['0'];
+            if (gearStick && point && touchState.shifterPointerId === null) {
+                gearStick.style.left = `${point.x * 100}%`;
+                gearStick.style.top = `${point.y * 100}%`;
+            }
+            if (readout) readout.innerText = getGearLabel(carPhysics.currentGear);
+        }
+
+        function setManualGear(gear) {
+            carPhysics.isManualGear = true;
+            carPhysics.currentGear = Math.max(-1, Math.min(3, gear));
+            updateShifterUI();
+        }
+
+        function toggleGearMode() {
+            carPhysics.isManualGear = !carPhysics.isManualGear;
+            if (carPhysics.isManualGear && carPhysics.currentGear === 0) carPhysics.currentGear = 1;
+            updateShifterUI();
+        }
+
+        function resetDrivePad() {
+            touchState.drivePointerId = null;
+            touchState.steer = 0;
+            touchState.throttle = 0;
+            touchState.brake = 0;
+            updateDrivePadUI();
+        }
+
+        function updateDrivePadFromPointer(event) {
+            const pad = document.getElementById('drive-pad');
+            if (!pad) return;
+            const rect = pad.getBoundingClientRect();
+            const cx = rect.left + rect.width / 2;
+            const cy = rect.top + rect.height / 2;
+            let dx = (event.clientX - cx) / (rect.width / 2);
+            let dy = (event.clientY - cy) / (rect.height / 2);
+            const dist = Math.hypot(dx, dy);
+            if (dist > 1) {
+                dx /= dist;
+                dy /= dist;
+            }
+            touchState.steer = Math.max(-1, Math.min(1, dx));
+            touchState.throttle = Math.max(0, -dy);
+            touchState.brake = Math.max(0, dy);
+            updateDrivePadUI();
+        }
+
+        function nearestGearFromPoint(nx, ny) {
+            let bestGear = carPhysics.currentGear;
+            let bestDist = Infinity;
+            Object.entries(gearLayout).forEach(([gear, point]) => {
+                const dist = Math.hypot(nx - point.x, ny - point.y);
+                if (dist < bestDist) {
+                    bestDist = dist;
+                    bestGear = Number(gear);
+                }
+            });
+            return { gear: bestGear, dist: bestDist };
+        }
+
+        function updateShifterFromPointer(event) {
+            const gate = document.getElementById('gear-gate');
+            const stick = document.getElementById('gear-stick');
+            if (!gate || !stick) return;
+            const rect = gate.getBoundingClientRect();
+            const nx = Math.max(0.12, Math.min(0.88, (event.clientX - rect.left) / rect.width));
+            const ny = Math.max(0.12, Math.min(0.88, (event.clientY - rect.top) / rect.height));
+            stick.style.left = `${nx * 100}%`;
+            stick.style.top = `${ny * 100}%`;
+            const nearest = nearestGearFromPoint(nx, ny);
+            if (nearest.dist < 0.16) setManualGear(nearest.gear);
+        }
+
+        function snapShifterToCurrentGear() {
+            touchState.shifterPointerId = null;
+            const stick = document.getElementById('gear-stick');
+            if (stick) stick.classList.remove('dragging');
+            updateShifterUI();
+        }
+
+        function attachControlEvents() {
+            bindHoldButton(document.getElementById('btn-drift'), () => { touchState.drift = true; }, () => { touchState.drift = false; });
+
+            document.getElementById('btn-reset').addEventListener('click', resetCar);
+            document.getElementById('btn-time').addEventListener('click', toggleTime);
+            document.getElementById('btn-gear-mode').addEventListener('click', toggleGearMode);
+
+            const drivePad = document.getElementById('drive-pad');
+            if (drivePad) {
+                drivePad.addEventListener('pointerdown', (event) => {
+                    event.preventDefault();
+                    touchState.drivePointerId = event.pointerId;
+                    drivePad.setPointerCapture?.(event.pointerId);
+                    updateDrivePadFromPointer(event);
+                });
+                drivePad.addEventListener('pointermove', (event) => {
+                    if (touchState.drivePointerId !== event.pointerId) return;
+                    updateDrivePadFromPointer(event);
+                });
+                const releaseDrive = (event) => {
+                    if (touchState.drivePointerId !== event.pointerId) return;
+                    resetDrivePad();
+                };
+                drivePad.addEventListener('pointerup', releaseDrive);
+                drivePad.addEventListener('pointercancel', releaseDrive);
+            }
+
+            const gearGate = document.getElementById('gear-gate');
+            const gearStick = document.getElementById('gear-stick');
+            if (gearGate && gearStick) {
+                gearGate.addEventListener('pointerdown', (event) => {
+                    event.preventDefault();
+                    touchState.shifterPointerId = event.pointerId;
+                    gearStick.classList.add('dragging');
+                    gearGate.setPointerCapture?.(event.pointerId);
+                    updateShifterFromPointer(event);
+                });
+                gearGate.addEventListener('pointermove', (event) => {
+                    if (touchState.shifterPointerId !== event.pointerId) return;
+                    updateShifterFromPointer(event);
+                });
+                const releaseShifter = (event) => {
+                    if (touchState.shifterPointerId !== event.pointerId) return;
+                    snapShifterToCurrentGear();
+                };
+                gearGate.addEventListener('pointerup', releaseShifter);
+                gearGate.addEventListener('pointercancel', releaseShifter);
+            }
+
+            document.querySelectorAll('.gate-slot[data-gear]').forEach(btn => {
+                btn.addEventListener('click', () => setManualGear(Number(btn.dataset.gear)));
+            });
+
+            updateDrivePadUI();
+        }
+
+        const isTouchDevice = window.matchMedia('(pointer: coarse)').matches || window.innerWidth <= 900;
+
+        document.addEventListener('keydown', e => {
+            const k = e.key.toLowerCase();
+            if(keys.hasOwnProperty(k) || k===' ') keys[k===' '?'space':k] = true;
+            if(k==='arrowup') keys.w = true; if(k==='arrowdown') keys.s = true;
+            if(k==='arrowleft') keys.a = true; if(k==='arrowright') keys.d = true;
+            if(k==='r') resetCar();
+            if(k==='t') toggleTime();
+            if(k==='m') carPhysics.isManualGear = !carPhysics.isManualGear;
+            if(carPhysics.isManualGear) {
+                if(k==='e' && carPhysics.currentGear < 3) carPhysics.currentGear++;
+                if(k==='q' && carPhysics.currentGear > -1) carPhysics.currentGear--;
+            }
+            updateShifterUI();
+        });
+        document.addEventListener('keyup', e => {
+            const k = e.key.toLowerCase();
+            if(keys.hasOwnProperty(k) || k===' ') keys[k===' '?'space':k] = false;
+            if(k==='arrowup') keys.w = false; if(k==='arrowdown') keys.s = false;
+            if(k==='arrowleft') keys.a = false; if(k==='arrowright') keys.d = false;
+        });
+
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.6); scene.add(ambientLight);
+        const sunLight = new THREE.DirectionalLight(0xffffff, 1.2);
+        sunLight.position.set(100, 200, 100); sunLight.castShadow = true;
+        sunLight.shadow.mapSize.set(2048, 2048);
+        sunLight.shadow.camera.left = -300; sunLight.shadow.camera.right = 300;
+        sunLight.shadow.camera.top = 300; sunLight.shadow.camera.bottom = -300;
+        scene.add(sunLight);
+
+        let timeState = 0; 
+        function toggleTime() {
+            timeState = (timeState + 1) % 3;
+            if(timeState === 0) {
+                scene.background.setHex(0xaaccff); scene.fog.color.setHex(0xaaccff);
+                ambientLight.intensity = 0.6; sunLight.intensity = 1.2; sunLight.color.setHex(0xffffff);
+                headLightL.intensity = 0; headLightR.intensity = 0;
+            } else if(timeState === 1) {
+                scene.background.setHex(0xffaa66); scene.fog.color.setHex(0xffaa66);
+                ambientLight.intensity = 0.4; sunLight.intensity = 0.8; sunLight.color.setHex(0xffaa00);
+                headLightL.intensity = 10; headLightR.intensity = 10;
+            } else {
+                scene.background.setHex(0x050510); scene.fog.color.setHex(0x050510);
+                ambientLight.intensity = 0.1; sunLight.intensity = 0.0;
+                headLightL.intensity = 100; headLightR.intensity = 100;
+            }
+        }
+
+        let score = 0;
+        function updatePhysics() {
+            const accel = Math.max(keys.w ? 1 : 0, touchState.throttle);
+            const brake = Math.max(keys.s ? 1 : 0, touchState.brake);
+            const steerAxis = Math.abs(touchState.steer) > 0.08 ? touchState.steer : 0;
+            const steerLeft = keys.a || steerAxis < 0;
+            const steerRight = keys.d || steerAxis > 0;
+            const drift = keys.space || touchState.drift;
+
+            if(carPhysics.isFalling) {
+                carPhysics.fallVel += 0.02;
+                carGroup.position.y -= carPhysics.fallVel;
+                carGroup.rotation.x += 0.05; carGroup.rotation.z += 0.02;
+                if(carGroup.position.y < -50) resetCar();
+                return;
+            }
+
+            if (carPhysics.isManualGear) {
+                const maxGearSpeed = GEAR_MAX_SPEED[carPhysics.currentGear];
+                if (carPhysics.currentGear === -1) { // Reverse
+                    if (brake) carPhysics.speed -= carPhysics.accel * brake;
+                    if (accel) carPhysics.speed += carPhysics.brake * accel;
+                    if (carPhysics.speed > 0) carPhysics.speed = 0;
+                    if (carPhysics.speed < -maxGearSpeed) carPhysics.speed = -maxGearSpeed;
+                } else { // Forward or Neutral
+                    if (accel && carPhysics.currentGear > 0) carPhysics.speed += carPhysics.accel * accel;
+                    if (brake) carPhysics.speed -= carPhysics.brake * brake;
+                    if (carPhysics.speed < 0) carPhysics.speed = 0;
+                    if (carPhysics.speed > maxGearSpeed) carPhysics.speed = maxGearSpeed;
+                }
+            } else { // Automatic
+                if (accel) carPhysics.speed += carPhysics.accel * accel;
+                if (brake) carPhysics.speed -= carPhysics.brake * brake;
+                if (carPhysics.speed > carPhysics.maxSpeed) carPhysics.speed = carPhysics.maxSpeed;
+                if (carPhysics.speed < -0.8) carPhysics.speed = -0.8;
+            }
+            carPhysics.speed *= carPhysics.friction;
+
+            let steer = 0;
+            if(Math.abs(carPhysics.speed) > 0.05) {
+                if (steerAxis !== 0) steer = -0.05 * steerAxis;
+                else {
+                    if(steerLeft) steer = 0.04;
+                    if(steerRight) steer = -0.04;
+                }
+                if(carPhysics.speed < 0) steer *= -1;
+            }
+            carPhysics.angle += steer;
+
+            let centrifugal = carPhysics.speed * steer * 5; 
+            if (drift && Math.abs(carPhysics.speed) > 0.8) {
+                carPhysics.slide += centrifugal * 1.5;
+            } else {
+                carPhysics.slide *= 0.9;
+            }
+            carPhysics.slide = Math.max(-1.5, Math.min(1.5, carPhysics.slide));
+
+            const moveAngle = carPhysics.angle + carPhysics.slide * 0.5;
+            const velX = Math.sin(moveAngle) * carPhysics.speed;
+            const velZ = Math.cos(moveAngle) * carPhysics.speed;
+            const nextX = carGroup.position.x + velX;
+            const nextZ = carGroup.position.z + velZ;
+
+            let collision = false; const carRad = 1.2;
+            for(let c of colliders) {
+                if(nextX+carRad > c.minX && nextX-carRad < c.maxX && nextZ+carRad > c.minZ && nextZ-carRad < c.maxZ) {
+                    collision = true; break;
+                }
+            }
+            if(collision) { carPhysics.speed *= -0.5; carPhysics.slide = 0; }
+            else { carGroup.position.x = nextX; carGroup.position.z = nextZ; }
+            carGroup.rotation.y = carPhysics.angle;
+
+            const minX = WORLD_OFFSET_X - 10; const maxX = WORLD_OFFSET_X + mapW - TILE_SIZE + 10;
+            const minZ = WORLD_OFFSET_Z - 10; const maxZ = WORLD_OFFSET_Z + mapH - TILE_SIZE + 10;
+            if (nextX < minX || nextX > maxX || nextZ < minZ || nextZ > maxZ) carPhysics.isFalling = true;
+
+            orbs.forEach(orb => {
+                if(orb.userData.active) {
+                    if(Math.hypot(orb.position.x - carGroup.position.x, orb.position.z - carGroup.position.z) < 3.0) {
+                        score += 100; document.getElementById('score-val').innerText = score;
+                        orb.userData.active = false; orb.visible = false; orb.userData.light.intensity = 0;
+                    } else {
+                        orb.position.y = 1.5 + Math.sin(Date.now()*0.005)*0.3; orb.rotation.y += 0.05;
+                    }
+                }
+            });
+
+            const roll = -carPhysics.slide * 0.2; 
+            const pitch = (accel ? -0.02 : 0) + (brake ? 0.03 : 0);
+            carBodyGroup.rotation.z += (roll - carBodyGroup.rotation.z) * 0.1;
+            carBodyGroup.rotation.x += (pitch - carBodyGroup.rotation.x) * 0.1;
+
+            const driftMsg = document.getElementById('drift-msg');
+            if(Math.abs(carPhysics.slide) > 0.5 && Math.abs(carPhysics.speed) > 0.5) {
+                driftMsg.style.opacity = 1;
+                driftMsg.style.transform = `translate(-50%, -50%) rotate(${Math.random()*10-5}deg)`;
+            } else { driftMsg.style.opacity = 0; }
+        }
+
+        function updateCamera() {
+            if(carPhysics.isFalling) return;
+            const dist = 6.0; const height = 2.5;
+            
+            const targetY = carGroup.position.y; 
+
+            const camAngle = carPhysics.angle - carPhysics.slide * 0.3;
+            const targetX = carGroup.position.x - Math.sin(camAngle) * dist;
+            const targetZ = carGroup.position.z - Math.cos(camAngle) * dist;
+            
+            camera.position.x += (targetX - camera.position.x) * 0.1;
+            camera.position.z += (targetZ - camera.position.z) * 0.1;
+            camera.position.y += (targetY + height - camera.position.y) * 0.1;
+            
+            camera.lookAt(carGroup.position.x + Math.sin(carPhysics.angle)*10, carGroup.position.y+1, carGroup.position.z + Math.cos(carPhysics.angle)*10);
+            camera.fov = 60 + Math.abs(carPhysics.speed) * 10;
+            camera.updateProjectionMatrix();
+        }
+
+        function updateUI() {
+            document.getElementById('disp-speed').innerText = Math.abs(Math.round(carPhysics.speed * 180));
+            const ratio = Math.min(Math.abs(carPhysics.speed) / carPhysics.maxSpeed, 1.0);
+            document.getElementById('rpm-bar').style.width = (ratio * 100) + '%';
+            
+            document.getElementById('disp-gear-mode').innerText = carPhysics.isManualGear ? 'MANUAL' : 'AUTO';
+            let g = 'N';
+            if(carPhysics.isManualGear) {
+                if(carPhysics.currentGear === -1) g = 'R';
+                else if(carPhysics.currentGear > 0) g = String(carPhysics.currentGear);
+            } else {
+                if(carPhysics.speed > 0.1) g = '1'; if(carPhysics.speed > 0.8) g = '2'; if(carPhysics.speed > 1.6) g = '3';
+                if(carPhysics.speed < -0.1) g = 'R';
+            }
+            document.getElementById('disp-gear').innerText = g;
+            updateShifterUI();
+            updateDrivePadUI();
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            updatePhysics(); updateCamera(); updateUI();
+            renderer.render(scene, camera);
+        }
+        attachControlEvents();
+        if (isTouchDevice) {
+            carPhysics.isManualGear = true;
+            carPhysics.currentGear = 1;
+        }
+        updateShifterUI();
+        updateDrivePadUI();
+        animate();
+
+        function resizeViewport() {
+            const { width, height } = getViewportSize();
+            syncAppHeight();
+            camera.aspect = width / height;
+            camera.updateProjectionMatrix();
+            renderer.setSize(width, height, false);
+        }
+
+        window.addEventListener('resize', resizeViewport);
+        window.visualViewport?.addEventListener('resize', resizeViewport);
+        window.visualViewport?.addEventListener('scroll', resizeViewport);
+    </script>
+</body>
+</html>
