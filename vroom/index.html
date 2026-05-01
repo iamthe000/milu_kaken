@@ -83,7 +83,7 @@
             align-items: flex-end;
             padding: 22px calc(20px + var(--safe-right)) 18px calc(20px + var(--safe-left));
             gap: 40px;
-            background: linear-gradient(to top, rgba(0,0,0,0.45), transparent 75%);
+            background: transparent;
         }
 
         .gauge-container {
@@ -146,7 +146,7 @@
             display: none;
             gap: 12px;
             padding: 10px calc(14px + var(--safe-right)) calc(10px + var(--safe-bottom)) calc(14px + var(--safe-left));
-            background: linear-gradient(to top, rgba(0,0,0,0.9), rgba(0,0,0,0.45) 55%, transparent);
+            background: rgba(0,0,0,0.24);
         }
 
         .mobile-row {
@@ -167,10 +167,8 @@
             border: 1px solid rgba(255,255,255,0.12);
             border-radius: 24px;
             padding: 14px;
-            background:
-                radial-gradient(circle at top, rgba(255,255,255,0.14), transparent 42%),
-                linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.02));
-            box-shadow: inset 0 1px 0 rgba(255,255,255,0.08), 0 12px 24px rgba(0,0,0,0.24);
+            background: rgba(255,255,255,0.05);
+            box-shadow: none;
         }
 
         .controller-title {
@@ -214,10 +212,10 @@
             margin: 0 auto;
             border-radius: 50%;
             background:
-                radial-gradient(circle at center, rgba(255,255,255,0.16), rgba(255,255,255,0.02) 54%, rgba(0,0,0,0.24) 55%),
+                radial-gradient(circle at center, rgba(255,255,255,0.16), rgba(255,255,255,0.02) 54%, rgba(0,0,0,0.10) 55%),
                 radial-gradient(circle at center, rgba(0,220,255,0.1), transparent 70%);
             border: 1px solid rgba(255,255,255,0.12);
-            box-shadow: inset 0 0 40px rgba(0,0,0,0.25);
+            box-shadow: none;
         }
 
         .virtual-pad::before,
@@ -290,9 +288,7 @@
             width: min(34vw, 180px);
             aspect-ratio: 0.8;
             border-radius: 24px;
-            background:
-                radial-gradient(circle at top, rgba(255,255,255,0.14), transparent 40%),
-                linear-gradient(180deg, rgba(255,255,255,0.06), rgba(0,0,0,0.18));
+            background: rgba(255,255,255,0.04);
             border: 1px solid rgba(255,255,255,0.14);
             overflow: hidden;
         }
@@ -339,7 +335,7 @@
             font-size: 15px;
             border: 1px solid rgba(255,255,255,0.12);
             background: rgba(255,255,255,0.05);
-            box-shadow: inset 0 1px 0 rgba(255,255,255,0.05);
+            box-shadow: none;
             transition: border-color 0.12s ease, color 0.12s ease, background 0.12s ease;
         }
 
@@ -372,7 +368,7 @@
             width: 8px;
             height: 48px;
             border-radius: 999px;
-            background: linear-gradient(180deg, rgba(255,255,255,0.75), rgba(90,90,90,0.5));
+            background: linear-gradient(180deg, rgba(255,255,255,0.7), rgba(90,90,90,0.45));
         }
 
         .gear-stick::after {
@@ -385,10 +381,10 @@
             height: 30px;
             border-radius: 50%;
             background:
-                radial-gradient(circle at 35% 30%, rgba(255,255,255,0.42), rgba(255,255,255,0.14) 40%, rgba(0,0,0,0.4) 100%),
+                radial-gradient(circle at 35% 30%, rgba(255,255,255,0.42), rgba(255,255,255,0.14) 40%, rgba(0,0,0,0.3) 100%),
                 linear-gradient(180deg, rgba(0,255,255,0.36), rgba(0,120,160,0.28));
             border: 1px solid rgba(255,255,255,0.18);
-            box-shadow: 0 8px 16px rgba(0,0,0,0.32);
+            box-shadow: none;
         }
 
         .shifter-meta {
@@ -472,27 +468,28 @@
             }
 
             .mobile-controls {
-                gap: 8px;
-                padding-top: 8px;
+                gap: 6px;
+                padding-top: 6px;
+                padding-bottom: calc(6px + var(--safe-bottom));
             }
 
             .controller-card {
-                padding: 10px 12px;
-                border-radius: 18px;
+                padding: 8px 10px;
+                border-radius: 16px;
             }
 
             .controller-title {
-                margin-bottom: 6px;
+                margin-bottom: 4px;
                 font-size: 10px;
             }
 
             .virtual-pad {
-                width: min(24vw, 170px);
+                width: min(22vw, 150px);
             }
 
             .gear-gate {
-                width: min(18vw, 128px);
-                border-radius: 18px;
+                width: min(16vw, 118px);
+                border-radius: 16px;
             }
 
             .gear-stick {
@@ -505,9 +502,9 @@
             }
 
             .touch-btn {
-                min-height: 40px;
-                border-radius: 14px;
-                font-size: 12px;
+                min-height: 38px;
+                border-radius: 12px;
+                font-size: 11px;
             }
 
             .pad-metrics,
@@ -905,7 +902,7 @@
         const matKakenPlaceholder = new THREE.MeshStandardMaterial({ color: 0xffff00 });
         
         kakenSpots.forEach(spot => {
-            loader.load('~/images/kaken.glb', (gltf) => {
+            loader.load('kaken.glb', (gltf) => {
                 const model = gltf.scene;
                 model.position.set(spot.x, 6.0, spot.z);
                 model.rotation.y = spot.rot;
