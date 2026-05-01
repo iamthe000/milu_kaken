@@ -905,7 +905,7 @@
         const matKakenPlaceholder = new THREE.MeshStandardMaterial({ color: 0xffff00 });
         
         kakenSpots.forEach(spot => {
-            loader.load('kaken.glb', (gltf) => {
+            loader.load('~/images/kaken.glb', (gltf) => {
                 const model = gltf.scene;
                 model.position.set(spot.x, 6.0, spot.z);
                 model.rotation.y = spot.rot;
