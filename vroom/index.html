@@ -622,6 +622,9 @@
                 <span class="key">T</span> 時間変更 (昼/夕/夜)<br>
                 <span class="key">R</span> リセット<br>
                 <span class="key">M</span> ギアモード <span class="key">Q</span><span class="key">E</span> シフト
+                <br><span class="key">V</span> 視点切替（運転者 / 俯瞰）
+                <br><span class="key">PAD</span> 左スティック: 操舵 / RT: アクセル / LT: ブレーキ<br>
+                A: 開始/ドリフト　LB/RB: シフト　X: ギアモード　Y: 時間　B: リセット　R3: 視点
             </div>
         </div>
 
@@ -699,7 +702,7 @@
             <h1>TOWN DRIVE</h1>
             <p>MILUエリアの道路を使ったドライブシミュレーターです。案内マーカーをたどり、交差点と周囲を確認しながら走行してください。</p>
             <button id="start-button">DRIVE OUT</button>
-            <div class="start-tips">WASD / 矢印キー: 操作　 SPACE: ドリフト<br>モバイルでは横画面で、左パッドとシフターを使えます</div>
+            <div class="start-tips">WASD / 矢印キー: 操作　 SPACE: ドリフト　 V: 視点切替<br>ゲームパッド: 左スティック / RT・LT / A（ドリフト）/ R3（視点）<br>モバイルでは横画面で、左パッドとシフターを使えます</div>
         </div>
     </div>
 
@@ -1101,6 +1104,16 @@
             currentGear: 0, // 0:N, -1:R, 1-3:Fwd
         };
         let driveStarted = false;
+        let cameraView = 'overview';
+
+        function toggleCameraView() {
+            cameraView = cameraView === 'overview' ? 'driver' : 'overview';
+            if (driveStarted) {
+                document.getElementById('drive-status').innerText = cameraView === 'driver'
+                    ? 'VIEW  運転者視点'
+                    : 'VIEW  俯瞰視点';
+            }
+        }
 
         function resetCar() {
             carGroup.position.set(startX, 0.5, startZ);
@@ -1164,6 +1177,64 @@
             drivePointerId: null,
             shifterPointerId: null,
         };
+        // Standard Gamepad mapping: left stick/DPAD steer, RT accelerate, LT brake.
+        // The state is refreshed every frame so disconnecting a controller releases all inputs.
+        const gamepadState = {
+            steer: 0,
+            throttle: 0,
+            brake: 0,
+            drift: false,
+            previousButtons: [],
+        };
+
+        function applyDeadzone(value, deadzone = 0.16) {
+            if (Math.abs(value) <= deadzone) return 0;
+            return Math.sign(value) * Math.min(1, (Math.abs(value) - deadzone) / (1 - deadzone));
+        }
+
+        function gamepadButtonValue(gamepad, index) {
+            return gamepad.buttons[index] ? gamepad.buttons[index].value : 0;
+        }
+
+        function startDrive() {
+            if (driveStarted) return;
+            driveStarted = true;
+            document.getElementById('start-screen').classList.add('hidden');
+            document.getElementById('drive-status').innerText = `NAVIGATION ON  ${driveRoute[routeIndex].note}`;
+        }
+
+        function updateGamepad() {
+            const pads = navigator.getGamepads ? navigator.getGamepads() : [];
+            const gamepad = Array.from(pads).find(pad => pad && pad.connected);
+            if (!gamepad) {
+                gamepadState.steer = 0;
+                gamepadState.throttle = 0;
+                gamepadState.brake = 0;
+                gamepadState.drift = false;
+                gamepadState.previousButtons = [];
+                return;
+            }
+
+            const buttonPressed = (index) => Boolean(gamepad.buttons[index]?.pressed);
+            const justPressed = (index) => buttonPressed(index) && !gamepadState.previousButtons[index];
+            const stick = applyDeadzone(gamepad.axes[0] || 0);
+            const dpadSteer = (buttonPressed(14) ? -1 : 0) + (buttonPressed(15) ? 1 : 0);
+            gamepadState.steer = dpadSteer || stick;
+            gamepadState.throttle = Math.max(gamepadButtonValue(gamepad, 7), buttonPressed(12) ? 1 : 0);
+            gamepadState.brake = Math.max(gamepadButtonValue(gamepad, 6), buttonPressed(13) ? 1 : 0);
+            gamepadState.drift = buttonPressed(0);
+
+            if (justPressed(9) || (!driveStarted && justPressed(0))) startDrive(); // Start/Menu or A/Cross
+            if (justPressed(1)) resetCar();         // B / Circle
+            if (justPressed(2)) toggleGearMode();   // X / Square
+            if (justPressed(3)) toggleTime();       // Y / Triangle
+            if (justPressed(11)) toggleCameraView(); // Right stick click / R3
+            if (carPhysics.isManualGear) {
+                if (justPressed(4) && carPhysics.currentGear > -1) setManualGear(carPhysics.currentGear - 1);
+                if (justPressed(5) && carPhysics.currentGear < 3) setManualGear(carPhysics.currentGear + 1);
+            }
+            gamepadState.previousButtons = gamepad.buttons.map(button => Boolean(button.pressed));
+        }
         const gearLayout = {
             '-1': { x: 0.24, y: 0.18, label: 'R' },
             '0': { x: 0.50, y: 0.46, label: 'N' },
@@ -1370,6 +1441,7 @@
             if(k==='r') resetCar();
             if(k==='t') toggleTime();
             if(k==='m') carPhysics.isManualGear = !carPhysics.isManualGear;
+            if(k==='v' && !e.repeat) toggleCameraView();
             if(carPhysics.isManualGear) {
                 if(k==='e' && carPhysics.currentGear < 3) carPhysics.currentGear++;
                 if(k==='q' && carPhysics.currentGear > -1) carPhysics.currentGear--;
@@ -1412,12 +1484,13 @@
         let score = 0;
         function updatePhysics() {
             if (!driveStarted) return;
-            const accel = Math.max(keys.w ? 1 : 0, touchState.throttle);
-            const brake = Math.max(keys.s ? 1 : 0, touchState.brake);
-            const steerAxis = Math.abs(touchState.steer) > 0.08 ? touchState.steer : 0;
+            const accel = Math.max(keys.w ? 1 : 0, touchState.throttle, gamepadState.throttle);
+            const brake = Math.max(keys.s ? 1 : 0, touchState.brake, gamepadState.brake);
+            const touchSteer = Math.abs(touchState.steer) > 0.08 ? touchState.steer : 0;
+            const steerAxis = touchSteer || gamepadState.steer;
             const steerLeft = keys.a || steerAxis < 0;
             const steerRight = keys.d || steerAxis > 0;
-            const drift = keys.space || touchState.drift;
+            const drift = keys.space || touchState.drift || gamepadState.drift;
 
             if(carPhysics.isFalling) {
                 carPhysics.fallVel += 0.02;
@@ -1540,20 +1613,43 @@
 
         function updateCamera() {
             if(carPhysics.isFalling) return;
-            const dist = 6.0; const height = 2.5;
-            
-            const targetY = carGroup.position.y; 
+            const forwardX = Math.sin(carPhysics.angle);
+            const forwardZ = Math.cos(carPhysics.angle);
+            let targetX, targetY, targetZ, lookX, lookY, lookZ, targetFov;
 
-            const camAngle = carPhysics.angle - carPhysics.slide * 0.3;
-            const targetX = carGroup.position.x - Math.sin(camAngle) * dist;
-            const targetZ = carGroup.position.z - Math.cos(camAngle) * dist;
-            
-            camera.position.x += (targetX - camera.position.x) * 0.1;
-            camera.position.z += (targetZ - camera.position.z) * 0.1;
-            camera.position.y += (targetY + height - camera.position.y) * 0.1;
-            
-            camera.lookAt(carGroup.position.x + Math.sin(carPhysics.angle)*10, carGroup.position.y+1, carGroup.position.z + Math.cos(carPhysics.angle)*10);
-            camera.fov = 60 + Math.abs(carPhysics.speed) * 10;
+            if (cameraView === 'driver') {
+                // Position the camera at the driver's eye line and look down the car's heading.
+                targetX = carGroup.position.x + forwardX * 0.35;
+                targetY = carGroup.position.y + 1.35;
+                targetZ = carGroup.position.z + forwardZ * 0.35;
+                lookX = carGroup.position.x + forwardX * 22;
+                lookY = carGroup.position.y + 1.2;
+                lookZ = carGroup.position.z + forwardZ * 22;
+                targetFov = 74;
+
+                // A cockpit camera must be rigidly attached to the car: smoothing here
+                // makes the view lag behind acceleration and lets it appear outside.
+                camera.position.set(targetX, targetY, targetZ);
+                camera.lookAt(lookX, lookY, lookZ);
+                camera.fov = targetFov;
+                camera.updateProjectionMatrix();
+                return;
+            } else {
+                const camAngle = carPhysics.angle - carPhysics.slide * 0.3;
+                targetX = carGroup.position.x - Math.sin(camAngle) * 10;
+                targetY = carGroup.position.y + 9;
+                targetZ = carGroup.position.z - Math.cos(camAngle) * 10;
+                lookX = carGroup.position.x + forwardX * 4;
+                lookY = carGroup.position.y;
+                lookZ = carGroup.position.z + forwardZ * 4;
+                targetFov = 60 + Math.abs(carPhysics.speed) * 8;
+            }
+
+            camera.position.x += (targetX - camera.position.x) * 0.12;
+            camera.position.y += (targetY - camera.position.y) * 0.12;
+            camera.position.z += (targetZ - camera.position.z) * 0.12;
+            camera.lookAt(lookX, lookY, lookZ);
+            camera.fov += (targetFov - camera.fov) * 0.12;
             camera.updateProjectionMatrix();
         }
 
@@ -1583,6 +1679,7 @@
 
         function animate() {
             requestAnimationFrame(animate);
+            updateGamepad();
             const now = performance.now() * .001;
             markerRing.rotation.z = now * 1.4;
             markerCore.position.y = 2.2 + Math.sin(now * 2.2) * .28;
@@ -1591,11 +1688,7 @@
             renderer.render(scene, camera);
         }
         attachControlEvents();
-        document.getElementById('start-button').addEventListener('click', () => {
-            driveStarted = true;
-            document.getElementById('start-screen').classList.add('hidden');
-            document.getElementById('drive-status').innerText = `NAVIGATION ON  ${driveRoute[routeIndex].note}`;
-        });
+        document.getElementById('start-button').addEventListener('click', startDrive);
         if (isTouchDevice) {
             carPhysics.isManualGear = true;
             carPhysics.currentGear = 1;
