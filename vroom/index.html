@@ -592,7 +592,9 @@
         .start-logo { color:#d4d4d4; font-weight:700; font-size:12px; letter-spacing:.14em; margin-left:.14em; }
         .start-card h1 { margin:10px 0 10px; font-size:clamp(28px,6vw,42px); font-weight:700; letter-spacing:.02em; line-height:1; }
         .start-card p { margin:0 auto 22px; max-width:330px; color:#c7dde0; line-height:1.8; font-size:13px; }
-        #start-button { border:1px solid #e5e5e5; border-radius:2px; padding:12px 22px; color:#111; background:#f1f1f1; font:700 13px inherit; letter-spacing:.06em; box-shadow:none; cursor:pointer; }
+        #start-button, #gyro-button { border:1px solid #e5e5e5; border-radius:2px; padding:12px 22px; color:#111; background:#f1f1f1; font:700 13px inherit; letter-spacing:.06em; box-shadow:none; cursor:pointer; }
+        #gyro-button { display:block; margin:10px auto 0; color:#bffcff; background:#10262b; border-color:#53d9e8; }
+        #gyro-button[hidden] { display:none; }
         .start-tips { margin-top:18px; color:#8faeb5; font-size:10px; line-height:1.7; }
         .controller-card, .gear-gate { border-radius:3px; background:rgba(12,16,18,.82); border-color:rgba(255,255,255,.2); box-shadow:none; }
         .touch-btn { border-radius:3px; background:#2a3338; border-color:rgba(255,255,255,.28); box-shadow:none; text-shadow:none; }
@@ -702,7 +704,8 @@
             <h1>TOWN DRIVE</h1>
             <p>MILUエリアの道路を使ったドライブシミュレーターです。案内マーカーをたどり、交差点と周囲を確認しながら走行してください。</p>
             <button id="start-button">DRIVE OUT</button>
-            <div class="start-tips">WASD / 矢印キー: 操作　 SPACE: ドリフト　 V: 視点切替<br>ゲームパッド: 左スティック / RT・LT / A（ドリフト）/ R3（視点）<br>モバイルでは横画面で、左パッドとシフターを使えます</div>
+            <button id="gyro-button" hidden>GYRO CONNECT</button>
+            <div class="start-tips">WASD / 矢印キー: 操作　 SPACE: ドリフト　 V: 視点切替<br>ゲームパッド: 左スティック / RT・LT / A（ドリフト）/ R3（視点）<br>Chrome / Edgeでは GYRO CONNECT から対応コントローラーの傾き操舵を試せます</div>
         </div>
     </div>
 
@@ -1186,6 +1189,80 @@
             drift: false,
             previousButtons: [],
         };
+        // Many Switch-compatible pads expose the same 0x30 motion report as a Pro
+        // Controller. Gamepad API/XInput does not include these values, so WebHID is
+        // used as an optional enhancement rather than replacing normal pad input.
+        const gyroState = {
+            steer: 0,
+            baselineX: null,
+            samples: [],
+            device: null,
+        };
+
+        function setGyroStatus(message) {
+            document.getElementById('drive-status').innerText = message;
+        }
+
+        function onHidInput(event) {
+            // Nintendo-style full input report: sticks/buttons then vibrator byte,
+            // followed by three little-endian accelerometer readings (report 0x30).
+            // Other reports are deliberately ignored so unknown pads remain safe.
+            if (event.reportId !== 0x30 || event.data.byteLength < 18) return;
+            const accelX = event.data.getInt16(12, true);
+            gyroState.samples.push(accelX);
+            if (gyroState.samples.length <= 20) {
+                gyroState.baselineX = gyroState.samples.reduce((sum, value) => sum + value, 0) / gyroState.samples.length;
+                if (gyroState.samples.length === 20) setGyroStatus('GYRO READY  コントローラーを傾けて操舵');
+                return;
+            }
+            // Switch-family controllers normally use roughly 4,000 counts per 1 g.
+            // A gentle 35–45° tilt reaches full steering, with smoothing for noise.
+            const target = Math.max(-1, Math.min(1, -(accelX - gyroState.baselineX) / 2600));
+            gyroState.steer += (target - gyroState.steer) * 0.18;
+        }
+
+        async function connectGyro() {
+            const button = document.getElementById('gyro-button');
+            if (!navigator.hid || !window.isSecureContext) {
+                setGyroStatus('GYRO UNAVAILABLE  Chrome / Edge を HTTPS または localhost で開いてください');
+                return;
+            }
+            try {
+                button.disabled = true;
+                button.innerText = 'SELECT CONTROLLER…';
+                const devices = await navigator.hid.requestDevice({ filters: [] });
+                if (!devices.length) {
+                    setGyroStatus('GYRO CANCELLED  コントローラーを選択してください');
+                    return;
+                }
+                const device = devices[0];
+                if (!device.opened) await device.open();
+                gyroState.device?.removeEventListener('inputreport', onHidInput);
+                gyroState.device = device;
+                gyroState.steer = 0;
+                gyroState.baselineX = null;
+                gyroState.samples = [];
+                device.addEventListener('inputreport', onHidInput);
+                // Standard Switch Pro protocol keeps IMU reports disabled until this
+                // subcommand is sent. Pads that do not support it simply continue
+                // with their normal input and never enable gyro.
+                await device.sendReport(0x01, new Uint8Array([
+                    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                    0x03, 0x30
+                ]));
+                await device.sendReport(0x01, new Uint8Array([
+                    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                    0x40, 0x01
+                ]));
+                setGyroStatus(`GYRO CALIBRATING  ${device.productName || 'controller'} を水平にしてください`);
+            } catch (error) {
+                console.warn('Could not enable controller gyro:', error);
+                setGyroStatus('GYRO NOT AVAILABLE  この接続モードはモーション値を公開していません');
+            } finally {
+                button.disabled = false;
+                button.innerText = 'RECALIBRATE GYRO';
+            }
+        }
 
         function applyDeadzone(value, deadzone = 0.16) {
             if (Math.abs(value) <= deadzone) return 0;
@@ -1487,7 +1564,8 @@
             const accel = Math.max(keys.w ? 1 : 0, touchState.throttle, gamepadState.throttle);
             const brake = Math.max(keys.s ? 1 : 0, touchState.brake, gamepadState.brake);
             const touchSteer = Math.abs(touchState.steer) > 0.08 ? touchState.steer : 0;
-            const steerAxis = touchSteer || gamepadState.steer;
+            const gyroSteer = Math.abs(gyroState.steer) > 0.04 ? gyroState.steer : 0;
+            const steerAxis = touchSteer || gyroSteer || gamepadState.steer;
             const steerLeft = keys.a || steerAxis < 0;
             const steerRight = keys.d || steerAxis > 0;
             const drift = keys.space || touchState.drift || gamepadState.drift;
@@ -1689,6 +1767,11 @@
         }
         attachControlEvents();
         document.getElementById('start-button').addEventListener('click', startDrive);
+        const gyroButton = document.getElementById('gyro-button');
+        if (navigator.hid && window.isSecureContext) {
+            gyroButton.hidden = false;
+            gyroButton.addEventListener('click', connectGyro);
+        }
         if (isTouchDevice) {
             carPhysics.isManualGear = true;
             carPhysics.currentGear = 1;
