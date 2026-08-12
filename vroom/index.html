@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
-    <title>vroom</title>
+    <title>MILU DRIVE — Town Route</title>
     <style>
         :root {
             --app-height: 100dvh;
@@ -562,6 +562,47 @@
                 visibility: hidden;
             }
         }
+
+        /* Restrained vehicle-navigation interface: plain panels, clear hierarchy, no decorative effects. */
+        #ui-layer { font-family: "Hiragino Kaku Gothic ProN", "Yu Gothic", Meiryo, sans-serif; }
+        .top-bar { align-items: flex-start; padding-top:calc(12px + var(--safe-top)); }
+        #score-box { display:flex; align-items:center; gap:7px; color:#f5f5f5; font-size:11px; letter-spacing:.06em; text-shadow:none; }
+        #score-box::before { content:'MILU DRIVE'; color:#fff; background:#34434d; padding:5px 7px; border-radius:2px; font-weight:700; font-size:10px; letter-spacing:0; }
+        #score-val { color:#fff; font-size:14px; }
+        #help-box { background:rgba(10,14,16,.78); border:1px solid rgba(255,255,255,.18); border-radius:2px; padding:8px 10px; backdrop-filter:none; }
+        .dashboard { align-items:center; gap:16px; padding-bottom:calc(14px + var(--safe-bottom)); }
+        .gauge-container { width:112px; height:112px; border:2px solid #d8d8d8; background:rgba(12,15,17,.88); box-shadow:none; }
+        .gauge-container::before { content:''; position:absolute; inset:8px; border:1px solid rgba(255,255,255,.14); border-radius:50%; }
+        .gauge-value { z-index:1; font-size:32px; font-variant-numeric:tabular-nums; }
+        .gauge-label { z-index:1; color:#d6d6d6; bottom:19px; letter-spacing:.08em; }
+        #rpm-bar { left:13%; bottom:10px !important; width:74% !important; height:3px !important; border-radius:0; background:#e4b445 !important; transform-origin:left; transform:scaleX(0); }
+        .gear-display { color:#fff; text-shadow:none; font-size:32px; line-height:1; }
+        #disp-gear-mode { color:#d6d6d6 !important; letter-spacing:.08em; }
+        #drift-msg { color:#fff; font-size:20px; letter-spacing:.1em; text-shadow:0 1px 2px #000; }
+        .mission-card { position:absolute; left:50%; top:calc(12px + var(--safe-top)); transform:translateX(-50%); width:min(390px, calc(100vw - 230px)); color:#fff; background:rgba(13,18,21,.88); border:1px solid rgba(255,255,255,.24); border-radius:2px; padding:10px 12px; box-shadow:none; backdrop-filter:none; }
+        .mission-eyebrow { color:#c9c9c9; font-size:9px; font-weight:700; letter-spacing:.1em; margin-bottom:4px; }
+        #mission-name { font-size:14px; font-weight:800; letter-spacing:.03em; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+        .mission-progress { display:flex; align-items:center; gap:8px; margin-top:9px; font-size:10px; color:#c7d8dc; }
+        .progress-track { flex:1; height:4px; border-radius:0; overflow:hidden; background:rgba(255,255,255,.25); }
+        #progress-fill { height:100%; width:0%; background:#e4b445; border-radius:0; transition:width .3s; }
+        #drive-status { position:absolute; left:20px; bottom:172px; color:#f5f5f5; font-size:11px; letter-spacing:.04em; padding:7px 10px; background:rgba(8,11,13,.82); border-left:3px solid #d8d8d8; border-radius:0; opacity:.95; }
+        #start-screen { position:fixed; inset:0; z-index:10; display:flex; align-items:center; justify-content:center; text-align:center; color:#fff; background:rgba(5,8,10,.82); backdrop-filter:none; transition:opacity .25s ease, visibility .25s ease; pointer-events:auto; }
+        #start-screen.hidden { opacity:0; visibility:hidden; pointer-events:none; }
+        .start-card { width:min(440px, calc(100vw - 42px)); padding:28px 26px 25px; border:1px solid rgba(255,255,255,.34); border-radius:3px; background:#151b1f; box-shadow:none; }
+        .start-logo { color:#d4d4d4; font-weight:700; font-size:12px; letter-spacing:.14em; margin-left:.14em; }
+        .start-card h1 { margin:10px 0 10px; font-size:clamp(28px,6vw,42px); font-weight:700; letter-spacing:.02em; line-height:1; }
+        .start-card p { margin:0 auto 22px; max-width:330px; color:#c7dde0; line-height:1.8; font-size:13px; }
+        #start-button { border:1px solid #e5e5e5; border-radius:2px; padding:12px 22px; color:#111; background:#f1f1f1; font:700 13px inherit; letter-spacing:.06em; box-shadow:none; cursor:pointer; }
+        .start-tips { margin-top:18px; color:#8faeb5; font-size:10px; line-height:1.7; }
+        .controller-card, .gear-gate { border-radius:3px; background:rgba(12,16,18,.82); border-color:rgba(255,255,255,.2); box-shadow:none; }
+        .touch-btn { border-radius:3px; background:#2a3338; border-color:rgba(255,255,255,.28); box-shadow:none; text-shadow:none; }
+        .touch-btn:active, .touch-btn.active { background:#56646a; border-color:#fff; }
+        .virtual-pad { background:rgba(20,27,30,.84); border-color:rgba(255,255,255,.22); box-shadow:none; }
+        .pad-knob, .gear-stick::after { background:#4a565b; box-shadow:none; }
+        .gate-slot { border-radius:3px; box-shadow:none; }
+        .gate-slot.selected { color:#fff; border-color:#e4b445; background:rgba(228,180,69,.25); }
+        @media (max-width:900px), (pointer:coarse) { .mission-card { top:calc(8px + var(--safe-top)); width:min(310px,calc(100vw - 130px)); padding:7px 10px; } .mission-progress { margin-top:5px; } #drive-status { bottom:138px; left:12px; font-size:9px; } }
+        @media (pointer:coarse) and (orientation:landscape) { .mission-card { width:230px; top:calc(5px + var(--safe-top)); } .mission-eyebrow { font-size:7px; margin-bottom:1px; } #mission-name { font-size:10px; } .mission-progress { font-size:8px; } #drive-status { bottom:94px; padding:4px 7px; } }
     </style>
 </head>
 <body>
@@ -569,6 +610,11 @@
     <div id="ui-layer">
         <div class="top-bar">
             <div id="score-box">SCORE: <span id="score-val">0</span></div>
+            <div class="mission-card">
+                <div class="mission-eyebrow">MILU DRIVE / NAVIGATION</div>
+                <div id="mission-name">出発準備中</div>
+                <div class="mission-progress"><span id="checkpoint-count">0 / 5</span><div class="progress-track"><div id="progress-fill"></div></div><span id="distance-readout">-- m</span></div>
+            </div>
             <div id="help-box">
                 <span class="key">W</span> アクセル <span class="key">S</span> ブレーキ/バック<br>
                 <span class="key">A</span> <span class="key">D</span> ステアリング<br>
@@ -580,6 +626,7 @@
         </div>
 
         <div id="drift-msg">DRIFT!</div>
+        <div id="drive-status">READY TO DRIVE</div>
 
         <div class="dashboard">
             <div style="text-align: center;">
@@ -646,6 +693,15 @@
         </div>
     </div>
     <div class="rotate-notice">横画面でプレイしてください</div>
+    <div id="start-screen">
+        <div class="start-card">
+            <div class="start-logo">MILU</div>
+            <h1>TOWN DRIVE</h1>
+            <p>MILUエリアの道路を使ったドライブシミュレーターです。案内マーカーをたどり、交差点と周囲を確認しながら走行してください。</p>
+            <button id="start-button">DRIVE OUT</button>
+            <div class="start-tips">WASD / 矢印キー: 操作　 SPACE: ドリフト<br>モバイルでは横画面で、左パッドとシフターを使えます</div>
+        </div>
+    </div>
 
     <script type="importmap">
         {
@@ -798,11 +854,14 @@
         syncAppHeight();
 
         const camera = new THREE.PerspectiveCamera(60, initialViewport.width / initialViewport.height, 0.1, 1000);
-        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
         renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
         renderer.setSize(initialViewport.width, initialViewport.height, false);
         renderer.shadowMap.enabled = true;
         renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        renderer.outputColorSpace = THREE.SRGBColorSpace;
+        renderer.toneMapping = THREE.ACESFilmicToneMapping;
+        renderer.toneMappingExposure = 1.08;
         document.body.appendChild(renderer.domElement);
 
         const texGrass = createTexture('grass');
@@ -820,14 +879,15 @@
         const orbs = [];
         const kakenSpots = [];
 
-        const sea = new THREE.Mesh(new THREE.PlaneGeometry(3000, 3000), new THREE.MeshBasicMaterial({ color: 0x001133 }));
-        sea.rotation.x = -Math.PI/2; sea.position.y = -40; scene.add(sea);
+        // Extend the town ground beyond the playable streets to keep the district continuous.
+        const townGround = new THREE.Mesh(new THREE.PlaneGeometry(3000, 3000), new THREE.MeshStandardMaterial({ color: 0x263c2b, roughness: 1 }));
+        townGround.rotation.x = -Math.PI/2; townGround.position.y = -40; scene.add(townGround);
 
         const mapW = mapData[0].length * TILE_SIZE;
         const mapH = mapData.length * TILE_SIZE;
-        const island = new THREE.Mesh(new THREE.BoxGeometry(mapW, 40, mapH), new THREE.MeshStandardMaterial({ color: 0x444444 }));
-        island.position.set(mapW/2 + WORLD_OFFSET_X - TILE_SIZE/2, -20, mapH/2 + WORLD_OFFSET_Z - TILE_SIZE/2);
-        scene.add(island);
+        const townBase = new THREE.Mesh(new THREE.BoxGeometry(mapW, 40, mapH), new THREE.MeshStandardMaterial({ color: 0x444444 }));
+        townBase.position.set(mapW/2 + WORLD_OFFSET_X - TILE_SIZE/2, -20, mapH/2 + WORLD_OFFSET_Z - TILE_SIZE/2);
+        scene.add(townBase);
 
         function generateWorld() {
             const roadMaterialCache = {};
@@ -937,6 +997,24 @@
         }
         generateWorld();
 
+        // Familiar roadside signs anchor the route without inventing a larger setting.
+        const landmarkMaterial = new THREE.MeshStandardMaterial({ color: 0xffd76a, emissive: 0x3d2500, roughness: 0.45 });
+        function addLandmark(x, z, label) {
+            const group = new THREE.Group();
+            const post = new THREE.Mesh(new THREE.CylinderGeometry(.16, .22, 3.2, 8), new THREE.MeshStandardMaterial({ color: 0x304852, roughness: .7 }));
+            post.position.y = 1.6; group.add(post);
+            const board = new THREE.Mesh(new THREE.BoxGeometry(3.3, 1.25, .15), landmarkMaterial);
+            board.position.y = 3.45; group.add(board);
+            const canvas = document.createElement('canvas'); canvas.width = 256; canvas.height = 96;
+            const cx = canvas.getContext('2d'); cx.fillStyle = '#17313b'; cx.font = '700 38px sans-serif'; cx.textAlign = 'center'; cx.fillText(label, 128, 59);
+            const sign = new THREE.Mesh(new THREE.PlaneGeometry(3.05, 1.05), new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(canvas), transparent: true }));
+            sign.position.set(0, 3.45, -.09); group.add(sign);
+            group.position.set(x, 0, z); scene.add(group);
+        }
+        addLandmark(-48, -276, 'MILU CENTER');
+        addLandmark(101, -124, 'EAST GATE');
+        addLandmark(-198, -126, 'WEST BLOCK');
+
         // Load kaken.glb and place at spots
         const loader = new GLTFLoader();
         const matKakenPlaceholder = new THREE.MeshStandardMaterial({ color: 0xffff00 });
@@ -980,6 +1058,18 @@
         const spoiler = new THREE.Mesh(new THREE.BoxGeometry(1.8, 0.1, 0.4), new THREE.MeshStandardMaterial({ color: 0x111111 }));
         spoiler.position.set(0, 1.1, 2.0); carBodyGroup.add(spoiler);
 
+        const wheels = [];
+        const tireMat = new THREE.MeshStandardMaterial({ color: 0x101317, roughness: .75, metalness: .15 });
+        const rimMat = new THREE.MeshStandardMaterial({ color: 0xc8d6d8, metalness: .9, roughness: .2 });
+        [[-.98,-1.42],[.98,-1.42],[-.98,1.42],[.98,1.42]].forEach(([x,z], i) => {
+            const wheel = new THREE.Group();
+            const tire = new THREE.Mesh(new THREE.CylinderGeometry(.38,.38,.28,16), tireMat); tire.rotation.z = Math.PI / 2; wheel.add(tire);
+            const rim = new THREE.Mesh(new THREE.CylinderGeometry(.19,.19,.292,12), rimMat); rim.rotation.z = Math.PI / 2; wheel.add(rim);
+            wheel.position.set(x,.38,z); carBodyGroup.add(wheel); wheels.push({ node:wheel, front:i < 2 });
+        });
+        const brakeMat = new THREE.MeshStandardMaterial({ color:0x661011, emissive:0x220000 });
+        [-.62,.62].forEach(x => { const lamp = new THREE.Mesh(new THREE.BoxGeometry(.36,.14,.08), brakeMat); lamp.position.set(x,.77,2.22); carBodyGroup.add(lamp); });
+
         const headLightL = new THREE.SpotLight(0xffffee, 0); 
         headLightL.angle = Math.PI / 6; headLightL.penumbra = 0.2; headLightL.distance = 100; headLightL.decay = 2;
         headLightL.position.set(0.6, 0.7, -2.0); headLightL.target.position.set(0.6, 0.5, -10);
@@ -1010,6 +1100,7 @@
             isManualGear: false,
             currentGear: 0, // 0:N, -1:R, 1-3:Fwd
         };
+        let driveStarted = false;
 
         function resetCar() {
             carGroup.position.set(startX, 0.5, startZ);
@@ -1019,8 +1110,48 @@
             carPhysics.slide = 0;
             carPhysics.isFalling = false;
             carPhysics.fallVel = 0;
+            if (driveStarted) document.getElementById('drive-status').innerText = 'POSITION RESET  前方の案内マーカーへ向かってください';
         }
         resetCar();
+
+        const driveRoute = [
+            { x: 100, z: -100, name: '次の交差点まで直進', note: '前方の交差点へ向かってください' },
+            { x: -50, z: -100, name: '交差点を左方向へ', note: '減速して、左右を確認しましょう' },
+            { x: -50, z: -250, name: 'MILU CENTER 前', note: '目的地マーカーの手前で減速' },
+            { x: -200, z: -250, name: '西側道路へ進入', note: 'カーブの先まで視線を向けましょう' },
+            { x: -200, z: -100, name: '出発地点方面へ', note: '周囲を確認して走行を続けてください' },
+        ];
+        let routeIndex = 0;
+        let lastCheckpointAt = 0;
+        let safetyScore = 100;
+        const marker = new THREE.Group();
+        const markerRing = new THREE.Mesh(new THREE.TorusGeometry(3.2, .12, 8, 32), new THREE.MeshBasicMaterial({ color:0xffdd58, transparent:true, opacity:.9 }));
+        markerRing.rotation.x = Math.PI / 2; markerRing.position.y = .65; marker.add(markerRing);
+        const markerBeam = new THREE.Mesh(new THREE.CylinderGeometry(.1, 1.2, 10, 12, 1, true), new THREE.MeshBasicMaterial({ color:0x74f0d7, transparent:true, opacity:.2, side:THREE.DoubleSide }));
+        markerBeam.position.y = 5; marker.add(markerBeam);
+        const markerCore = new THREE.Mesh(new THREE.OctahedronGeometry(.65), new THREE.MeshBasicMaterial({ color:0xfff1a5 })); markerCore.position.y=2.2; marker.add(markerCore);
+        scene.add(marker);
+        function refreshMission() {
+            const mission = driveRoute[routeIndex];
+            if (!mission) {
+                marker.visible = false;
+                document.getElementById('mission-name').innerText = 'ルート完了　MILUエリアを自由走行';
+                document.getElementById('distance-readout').innerText = 'FREE';
+                return;
+            }
+            marker.visible = true; marker.position.set(mission.x, 0, mission.z);
+            document.getElementById('mission-name').innerText = mission.name;
+            document.getElementById('checkpoint-count').innerText = `${routeIndex} / ${driveRoute.length}`;
+            document.getElementById('progress-fill').style.width = `${routeIndex / driveRoute.length * 100}%`;
+        }
+        function completeCheckpoint() {
+            score += 500 + Math.round(safetyScore * 2);
+            routeIndex++;
+            lastCheckpointAt = performance.now();
+            document.getElementById('drive-status').innerText = routeIndex < driveRoute.length ? `CHECKPOINT  ${driveRoute[routeIndex].note}` : 'ROUTE COMPLETE  自由走行に切り替わりました';
+            refreshMission();
+        }
+        refreshMission();
 
         const GEAR_MAX_SPEED = {'-1': 0.8, '0': 0, '1': 0.8, '2': 1.6, '3': 2.2};
 
@@ -1280,6 +1411,7 @@
 
         let score = 0;
         function updatePhysics() {
+            if (!driveStarted) return;
             const accel = Math.max(keys.w ? 1 : 0, touchState.throttle);
             const brake = Math.max(keys.s ? 1 : 0, touchState.brake);
             const steerAxis = Math.abs(touchState.steer) > 0.08 ? touchState.steer : 0;
@@ -1347,13 +1479,37 @@
                     collision = true; break;
                 }
             }
-            if(collision) { carPhysics.speed *= -0.5; carPhysics.slide = 0; }
+            if(collision) {
+                carPhysics.speed *= -0.32; carPhysics.slide = 0;
+                safetyScore = Math.max(0, safetyScore - 12);
+                document.getElementById('drive-status').innerText = 'CAUTION  接触を検知。停止して周囲を確認してください';
+            }
             else { carGroup.position.x = nextX; carGroup.position.z = nextZ; }
             carGroup.rotation.y = carPhysics.angle;
 
             const minX = WORLD_OFFSET_X - 10; const maxX = WORLD_OFFSET_X + mapW - TILE_SIZE + 10;
             const minZ = WORLD_OFFSET_Z - 10; const maxZ = WORLD_OFFSET_Z + mapH - TILE_SIZE + 10;
             if (nextX < minX || nextX > maxX || nextZ < minZ || nextZ > maxZ) carPhysics.isFalling = true;
+
+            const tileX = Math.round((carGroup.position.x - WORLD_OFFSET_X) / TILE_SIZE);
+            const tileZ = Math.round((carGroup.position.z - WORLD_OFFSET_Z) / TILE_SIZE);
+            const currentTile = mapData[tileZ]?.[tileX];
+            const onRoad = currentTile === 0 || currentTile === 9;
+            if (!onRoad && !collision) {
+                carPhysics.speed *= 0.94;
+                if (Math.abs(carPhysics.speed) > .45) {
+                    safetyScore = Math.max(0, safetyScore - .025);
+                    document.getElementById('drive-status').innerText = 'OFF ROAD  舗装路へ戻ってください';
+                }
+            } else if (!collision && performance.now() - lastCheckpointAt > 2400) {
+                document.getElementById('drive-status').innerText = safetyScore > 78 ? 'GOOD DRIVE  このまま前方の案内に従ってください' : 'DRIVE SAFE  速度を落として周囲を確認してください';
+            }
+
+            const mission = driveRoute[routeIndex];
+            if (mission) {
+                const distance = Math.hypot(mission.x - carGroup.position.x, mission.z - carGroup.position.z);
+                if (distance < 5.2) completeCheckpoint();
+            }
 
             orbs.forEach(orb => {
                 if(orb.userData.active) {
@@ -1370,6 +1526,10 @@
             const pitch = (accel ? -0.02 : 0) + (brake ? 0.03 : 0);
             carBodyGroup.rotation.z += (roll - carBodyGroup.rotation.z) * 0.1;
             carBodyGroup.rotation.x += (pitch - carBodyGroup.rotation.x) * 0.1;
+            wheels.forEach(({node, front}) => {
+                node.rotation.x -= carPhysics.speed * .55;
+                if (front) node.rotation.y += (steer * 7 - node.rotation.y) * .15;
+            });
 
             const driftMsg = document.getElementById('drift-msg');
             if(Math.abs(carPhysics.slide) > 0.5 && Math.abs(carPhysics.speed) > 0.5) {
@@ -1400,7 +1560,12 @@
         function updateUI() {
             document.getElementById('disp-speed').innerText = Math.abs(Math.round(carPhysics.speed * 180));
             const ratio = Math.min(Math.abs(carPhysics.speed) / carPhysics.maxSpeed, 1.0);
-            document.getElementById('rpm-bar').style.width = (ratio * 100) + '%';
+            document.getElementById('rpm-bar').style.transform = `scaleX(${ratio})`;
+            const mission = driveRoute[routeIndex];
+            if (mission) {
+                const distance = Math.round(Math.hypot(mission.x - carGroup.position.x, mission.z - carGroup.position.z));
+                document.getElementById('distance-readout').innerText = `${distance} m`;
+            }
             
             document.getElementById('disp-gear-mode').innerText = carPhysics.isManualGear ? 'MANUAL' : 'AUTO';
             let g = 'N';
@@ -1418,10 +1583,19 @@
 
         function animate() {
             requestAnimationFrame(animate);
+            const now = performance.now() * .001;
+            markerRing.rotation.z = now * 1.4;
+            markerCore.position.y = 2.2 + Math.sin(now * 2.2) * .28;
+            markerBeam.material.opacity = .16 + Math.sin(now * 2) * .06;
             updatePhysics(); updateCamera(); updateUI();
             renderer.render(scene, camera);
         }
         attachControlEvents();
+        document.getElementById('start-button').addEventListener('click', () => {
+            driveStarted = true;
+            document.getElementById('start-screen').classList.add('hidden');
+            document.getElementById('drive-status').innerText = `NAVIGATION ON  ${driveRoute[routeIndex].note}`;
+        });
         if (isTouchDevice) {
             carPhysics.isManualGear = true;
             carPhysics.currentGear = 1;
