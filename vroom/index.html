@@ -1050,39 +1050,46 @@
             });
         });
 
+        const CAR_SCALE = 3.5;
+
         const carGroup = new THREE.Group();
         const carBodyGroup = new THREE.Group();
         carBodyGroup.rotation.y = Math.PI;
         carGroup.add(carBodyGroup);
 
-        const chassis = new THREE.Mesh(new THREE.BoxGeometry(1.9, 0.7, 4.4), new THREE.MeshStandardMaterial({ color: 0xeeeeee, metalness: 0.7, roughness: 0.1 }));
-        chassis.position.y = 0.6; chassis.castShadow = true; carBodyGroup.add(chassis);
+        const chassis = new THREE.Mesh(new THREE.BoxGeometry(1.9 * CAR_SCALE, 0.7 * CAR_SCALE, 4.4 * CAR_SCALE), new THREE.MeshStandardMaterial({ color: 0xeeeeee, metalness: 0.7, roughness: 0.1 }));
+        chassis.position.y = 0.6 * CAR_SCALE; chassis.castShadow = true; carBodyGroup.add(chassis);
         
-        const cabin = new THREE.Mesh(new THREE.BoxGeometry(1.7, 0.6, 2.5), new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.0 }));
-        cabin.position.set(0, 1.2, -0.2); carBodyGroup.add(cabin);
+        const cabin = new THREE.Mesh(new THREE.BoxGeometry(1.7 * CAR_SCALE, 0.6 * CAR_SCALE, 2.5 * CAR_SCALE), new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.0 }));
+        cabin.position.set(0, 1.2 * CAR_SCALE, -0.2 * CAR_SCALE); carBodyGroup.add(cabin);
         
-        const spoiler = new THREE.Mesh(new THREE.BoxGeometry(1.8, 0.1, 0.4), new THREE.MeshStandardMaterial({ color: 0x111111 }));
-        spoiler.position.set(0, 1.1, 2.0); carBodyGroup.add(spoiler);
+        const spoiler = new THREE.Mesh(new THREE.BoxGeometry(1.8 * CAR_SCALE, 0.1 * CAR_SCALE, 0.4 * CAR_SCALE), new THREE.MeshStandardMaterial({ color: 0x111111 }));
+        spoiler.position.set(0, 1.1 * CAR_SCALE, 2.0 * CAR_SCALE); carBodyGroup.add(spoiler);
 
         const wheels = [];
         const tireMat = new THREE.MeshStandardMaterial({ color: 0x101317, roughness: .75, metalness: .15 });
         const rimMat = new THREE.MeshStandardMaterial({ color: 0xc8d6d8, metalness: .9, roughness: .2 });
-        [[-.98,-1.42],[.98,-1.42],[-.98,1.42],[.98,1.42]].forEach(([x,z], i) => {
+        [[-0.98, -1.42], [0.98, -1.42], [-0.98, 1.42], [0.98, 1.42]].forEach(([x, z], i) => {
             const wheel = new THREE.Group();
-            const tire = new THREE.Mesh(new THREE.CylinderGeometry(.38,.38,.28,16), tireMat); tire.rotation.z = Math.PI / 2; wheel.add(tire);
-            const rim = new THREE.Mesh(new THREE.CylinderGeometry(.19,.19,.292,12), rimMat); rim.rotation.z = Math.PI / 2; wheel.add(rim);
-            wheel.position.set(x,.38,z); carBodyGroup.add(wheel); wheels.push({ node:wheel, front:i < 2 });
+            const tire = new THREE.Mesh(new THREE.CylinderGeometry(0.38 * CAR_SCALE, 0.38 * CAR_SCALE, 0.28 * CAR_SCALE, 16), tireMat); tire.rotation.z = Math.PI / 2; wheel.add(tire);
+            const rim = new THREE.Mesh(new THREE.CylinderGeometry(0.19 * CAR_SCALE, 0.19 * CAR_SCALE, 0.292 * CAR_SCALE, 12), rimMat); rim.rotation.z = Math.PI / 2; wheel.add(rim);
+            wheel.position.set(x * CAR_SCALE, 0.38 * CAR_SCALE, z * CAR_SCALE); carBodyGroup.add(wheel); wheels.push({ node: wheel, front: i < 2 });
         });
-        const brakeMat = new THREE.MeshStandardMaterial({ color:0x661011, emissive:0x220000 });
-        [-.62,.62].forEach(x => { const lamp = new THREE.Mesh(new THREE.BoxGeometry(.36,.14,.08), brakeMat); lamp.position.set(x,.77,2.22); carBodyGroup.add(lamp); });
+        const brakeMat = new THREE.MeshStandardMaterial({ color: 0x661011, emissive: 0x220000 });
+        [-0.62, 0.62].forEach(x => {
+            const lamp = new THREE.Mesh(new THREE.BoxGeometry(0.36 * CAR_SCALE, 0.14 * CAR_SCALE, 0.08 * CAR_SCALE), brakeMat);
+            lamp.position.set(x * CAR_SCALE, 0.77 * CAR_SCALE, 2.22 * CAR_SCALE); carBodyGroup.add(lamp);
+        });
 
         const headLightL = new THREE.SpotLight(0xffffee, 0); 
-        headLightL.angle = Math.PI / 6; headLightL.penumbra = 0.2; headLightL.distance = 100; headLightL.decay = 2;
-        headLightL.position.set(0.6, 0.7, -2.0); headLightL.target.position.set(0.6, 0.5, -10);
+        headLightL.angle = Math.PI / 6; headLightL.penumbra = 0.2; headLightL.distance = 200; headLightL.decay = 2;
+        headLightL.position.set(0.6 * CAR_SCALE, 0.7 * CAR_SCALE, -2.0 * CAR_SCALE);
+        headLightL.target.position.set(0.6 * CAR_SCALE, 0.5 * CAR_SCALE, -10.0 * CAR_SCALE);
         carBodyGroup.add(headLightL); carBodyGroup.add(headLightL.target);
         
         const headLightR = headLightL.clone();
-        headLightR.position.set(-0.6, 0.7, -2.0); headLightR.target.position.set(-0.6, 0.5, -10);
+        headLightR.position.set(-0.6 * CAR_SCALE, 0.7 * CAR_SCALE, -2.0 * CAR_SCALE);
+        headLightR.target.position.set(-0.6 * CAR_SCALE, 0.5 * CAR_SCALE, -10.0 * CAR_SCALE);
         carBodyGroup.add(headLightR); carBodyGroup.add(headLightR.target);
         scene.add(carGroup);
 
@@ -1093,9 +1100,9 @@
         
         const carPhysics = {
             speed: 0,
-            maxSpeed: 2.2,
-            accel: 0.03,
-            brake: 0.08,
+            maxSpeed: 2.8,
+            accel: 0.038,
+            brake: 0.096,
             friction: 0.985,
             angle: Math.PI,
             driftAngle: 0,
@@ -1121,7 +1128,7 @@
         }
 
         function resetCar() {
-            carGroup.position.set(startX, 0.5, startZ);
+            carGroup.position.set(startX, 0.5 * CAR_SCALE, startZ);
             carGroup.rotation.set(0, Math.PI, 0);
             carPhysics.speed = 0;
             carPhysics.driftAngle = 0;
@@ -1176,7 +1183,7 @@
         }
         refreshMission();
 
-        const GEAR_MAX_SPEED = {'-1': 0.8, '0': 0, '1': 0.8, '2': 1.6, '3': 2.2};
+        const GEAR_MAX_SPEED = {'-1': 1.0, '0': 0, '1': 1.0, '2': 2.0, '3': 2.8};
 
         const keys = { w:false, a:false, s:false, d:false, space:false, q:false, e:false };
         const touchState = {
@@ -1602,12 +1609,12 @@
                 if (accel) carPhysics.speed += carPhysics.accel * accel;
                 if (brake) carPhysics.speed -= carPhysics.brake * brake;
                 if (carPhysics.speed > carPhysics.maxSpeed) carPhysics.speed = carPhysics.maxSpeed;
-                if (carPhysics.speed < -0.8) carPhysics.speed = -0.8;
+                if (carPhysics.speed < -1.92) carPhysics.speed = -1.92;
             }
             carPhysics.speed *= carPhysics.friction;
 
             let steer = 0;
-            if(Math.abs(carPhysics.speed) > 0.05) {
+            if(Math.abs(carPhysics.speed) > 0.12) {
                 if (steerAxis !== 0) steer = -0.05 * steerAxis;
                 else {
                     if(steerLeft) steer = 0.04;
@@ -1618,7 +1625,7 @@
             carPhysics.angle += steer;
 
             let centrifugal = carPhysics.speed * steer * 5; 
-            if (drift && Math.abs(carPhysics.speed) > 0.8) {
+            if (drift && Math.abs(carPhysics.speed) > 1.92) {
                 carPhysics.slide += centrifugal * 1.5;
             } else {
                 carPhysics.slide *= 0.9;
@@ -1631,7 +1638,7 @@
             const nextX = carGroup.position.x + velX;
             const nextZ = carGroup.position.z + velZ;
 
-            let collision = false; const carRad = 1.2;
+            let collision = false; const carRad = 1.2 * CAR_SCALE;
             for(let c of colliders) {
                 if(nextX+carRad > c.minX && nextX-carRad < c.maxX && nextZ+carRad > c.minZ && nextZ-carRad < c.maxZ) {
                     collision = true; break;
@@ -1656,7 +1663,7 @@
             const onRoad = currentTile === 0 || currentTile === 9;
             if (!onRoad && !collision) {
                 carPhysics.speed *= 0.94;
-                if (Math.abs(carPhysics.speed) > .45) {
+                if (Math.abs(carPhysics.speed) > 1.08) {
                     safetyScore = Math.max(0, safetyScore - .025);
                     document.getElementById('drive-status').innerText = 'OFF ROAD  舗装路へ戻ってください';
                 }
@@ -1667,7 +1674,7 @@
             const mission = driveRoute[routeIndex];
             if (mission) {
                 const distance = Math.hypot(mission.x - carGroup.position.x, mission.z - carGroup.position.z);
-                if (distance < 5.2) completeCheckpoint();
+                if (distance < 10) completeCheckpoint();
             }
 
             orbs.forEach(orb => {
@@ -1702,7 +1709,7 @@
             });
 
             const driftMsg = document.getElementById('drift-msg');
-            if(Math.abs(carPhysics.slide) > 0.5 && Math.abs(carPhysics.speed) > 0.5) {
+            if(Math.abs(carPhysics.slide) > 0.5 && Math.abs(carPhysics.speed) > 1.2) {
                 driftMsg.style.opacity = 1;
                 driftMsg.style.transform = `translate(-50%, -50%) rotate(${Math.random()*10-5}deg)`;
             } else { driftMsg.style.opacity = 0; }
@@ -1716,12 +1723,12 @@
 
             if (cameraView === 'driver') {
                 // Position the camera at the driver's eye line and look down the car's heading.
-                targetX = carGroup.position.x + forwardX * 0.35;
-                targetY = carGroup.position.y + 1.35;
-                targetZ = carGroup.position.z + forwardZ * 0.35;
-                lookX = carGroup.position.x + forwardX * 22;
-                lookY = carGroup.position.y + 1.2;
-                lookZ = carGroup.position.z + forwardZ * 22;
+                targetX = carGroup.position.x + forwardX * (0.35 * CAR_SCALE);
+                targetY = carGroup.position.y + (1.35 * CAR_SCALE);
+                targetZ = carGroup.position.z + forwardZ * (0.35 * CAR_SCALE);
+                lookX = carGroup.position.x + forwardX * 50;
+                lookY = carGroup.position.y + (1.2 * CAR_SCALE);
+                lookZ = carGroup.position.z + forwardZ * 50;
                 targetFov = 74;
 
                 // A cockpit camera must be rigidly attached to the car: smoothing here
@@ -1733,13 +1740,13 @@
                 return;
             } else {
                 const camAngle = carPhysics.angle - carPhysics.slide * 0.3;
-                targetX = carGroup.position.x - Math.sin(camAngle) * 10;
-                targetY = carGroup.position.y + 9;
-                targetZ = carGroup.position.z - Math.cos(camAngle) * 10;
-                lookX = carGroup.position.x + forwardX * 4;
+                targetX = carGroup.position.x - Math.sin(camAngle) * (10 * CAR_SCALE);
+                targetY = carGroup.position.y + (9 * CAR_SCALE);
+                targetZ = carGroup.position.z - Math.cos(camAngle) * (10 * CAR_SCALE);
+                lookX = carGroup.position.x + forwardX * (4 * CAR_SCALE);
                 lookY = carGroup.position.y;
-                lookZ = carGroup.position.z + forwardZ * 4;
-                targetFov = 60 + Math.abs(carPhysics.speed) * 8;
+                lookZ = carGroup.position.z + forwardZ * (4 * CAR_SCALE);
+                targetFov = 60 + Math.abs(carPhysics.speed) * 4;
             }
 
             camera.position.x += (targetX - camera.position.x) * 0.12;
@@ -1751,7 +1758,7 @@
         }
 
         function updateUI() {
-            document.getElementById('disp-speed').innerText = Math.abs(Math.round(carPhysics.speed * 180));
+            document.getElementById('disp-speed').innerText = Math.abs(Math.round(carPhysics.speed * 40));
             const ratio = Math.min(Math.abs(carPhysics.speed) / carPhysics.maxSpeed, 1.0);
             document.getElementById('rpm-bar').style.transform = `scaleX(${ratio})`;
             const mission = driveRoute[routeIndex];
@@ -1766,7 +1773,7 @@
                 if(carPhysics.currentGear === -1) g = 'R';
                 else if(carPhysics.currentGear > 0) g = String(carPhysics.currentGear);
             } else {
-                if(carPhysics.speed > 0.1) g = '1'; if(carPhysics.speed > 0.8) g = '2'; if(carPhysics.speed > 1.6) g = '3';
+                if(carPhysics.speed > 0.1) g = '1'; if(carPhysics.speed > 1.0) g = '2'; if(carPhysics.speed > 2.0) g = '3';
                 if(carPhysics.speed < -0.1) g = 'R';
             }
             document.getElementById('disp-gear').innerText = g;
@@ -1817,3 +1824,4 @@
     </script>
 </body>
 </html>
+
