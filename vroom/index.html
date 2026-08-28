@@ -1114,6 +1114,16 @@
             fallVel: 0,
             isManualGear: false,
             currentGear: 0, // 0:N, -1:R, 1-3:Fwd
+            // Suspension spring-damper body physics & vibration state
+            bodyPitch: 0,
+            bodyPitchVel: 0,
+            bodyRoll: 0,
+            bodyRollVel: 0,
+            bodyVert: 0,
+            bodyVertVel: 0,
+            enginePhase: 0,
+            impactShake: 0,
+            prevSpeed: 0,
         };
         let driveStarted = false;
         let cameraView = 'overview';
@@ -1137,6 +1147,15 @@
             carPhysics.bobPhase = 0;
             carPhysics.isFalling = false;
             carPhysics.fallVel = 0;
+            carPhysics.bodyPitch = 0;
+            carPhysics.bodyPitchVel = 0;
+            carPhysics.bodyRoll = 0;
+            carPhysics.bodyRollVel = 0;
+            carPhysics.bodyVert = 0;
+            carPhysics.bodyVertVel = 0;
+            carPhysics.enginePhase = 0;
+            carPhysics.impactShake = 0;
+            carPhysics.prevSpeed = 0;
             carBodyGroup.position.y = 0;
             carBodyGroup.rotation.x = 0;
             carBodyGroup.rotation.z = 0;
@@ -1647,6 +1666,9 @@
             if(collision) {
                 carPhysics.speed *= -0.32; carPhysics.slide = 0;
                 carPhysics.bounce = Math.max(carPhysics.bounce, 0.11);
+                carPhysics.impactShake = Math.min(carPhysics.impactShake + 0.35, 0.6);
+                carPhysics.bodyPitchVel += 0.15;
+                carPhysics.bodyVertVel += 0.18;
                 safetyScore = Math.max(0, safetyScore - 12);
                 document.getElementById('drive-status').innerText = 'CAUTION  接触を検知。停止して周囲を確認してください';
             }
@@ -1689,20 +1711,72 @@
             });
 
             const speedRatio = Math.min(Math.abs(carPhysics.speed) / carPhysics.maxSpeed, 1);
-            const roadRoughness = onRoad ? 0.012 : 0.045;
-            carPhysics.bobPhase += 0.025 + Math.abs(carPhysics.speed) * 0.42;
+            const currentSpeed = carPhysics.speed;
+            const speedDelta = currentSpeed - carPhysics.prevSpeed;
+            carPhysics.prevSpeed = currentSpeed;
+
+            // Spring-damper physics constants for suspension bounce & body tilt
+            const springStiffness = 65.0;
+            const dampingRatio = 7.5;
+            const dt = 0.016; // approximate frame delta
+
+            // 1. Target Pitch (Longitudinal G-force: squat on acceleration, dive on braking)
+            let targetPitch = 0;
+            if (accel > 0) targetPitch = -0.045 * accel * (currentSpeed >= 0 ? 1 : -1);
+            if (brake > 0) targetPitch = 0.075 * brake * (currentSpeed >= 0 ? 1 : -1);
+            targetPitch += speedDelta * -0.6; // Inertial jerk
+
+            // Pitch spring equation: F = -k*(x - target) - c*v
+            const pitchForce = -springStiffness * (carPhysics.bodyPitch - targetPitch) - dampingRatio * carPhysics.bodyPitchVel;
+            carPhysics.bodyPitchVel += pitchForce * dt;
+            carPhysics.bodyPitch += carPhysics.bodyPitchVel * dt;
+
+            // 2. Target Roll (Lateral G-force: body roll on cornering and drift sway)
+            const centrifugalForce = currentSpeed * steer * 7.5 + carPhysics.slide * 0.4;
+            const targetRoll = -centrifugalForce * 0.06;
+
+            // Roll spring equation
+            const rollForce = -springStiffness * (carPhysics.bodyRoll - targetRoll) - dampingRatio * carPhysics.bodyRollVel;
+            carPhysics.bodyRollVel += rollForce * dt;
+            carPhysics.bodyRoll += carPhysics.bodyRollVel * dt;
+
+            // 3. Vertical Suspension Spring-Damper Bounce
             carPhysics.bounce *= 0.82;
-            const roadBob = (
-                Math.sin(carPhysics.bobPhase) +
-                Math.sin(carPhysics.bobPhase * 2.31) * 0.38
-            ) * roadRoughness * speedRatio;
-            const bodyHeight = roadBob + carPhysics.bounce;
-            const roll = -carPhysics.slide * 0.2 + steer * speedRatio * 0.12;
-            const pitch = (accel ? -0.02 : 0) + (brake ? 0.03 : 0)
-                + Math.cos(carPhysics.bobPhase * 2.31) * roadRoughness * speedRatio * 0.5;
-            carBodyGroup.position.y += (bodyHeight - carBodyGroup.position.y) * 0.16;
-            carBodyGroup.rotation.z += (roll - carBodyGroup.rotation.z) * 0.1;
-            carBodyGroup.rotation.x += (pitch - carBodyGroup.rotation.x) * 0.1;
+            const targetVert = carPhysics.bounce;
+            const vertForce = -springStiffness * (carPhysics.bodyVert - targetVert) - dampingRatio * carPhysics.bodyVertVel;
+            carPhysics.bodyVertVel += vertForce * dt;
+            carPhysics.bodyVert += carPhysics.bodyVertVel * dt;
+
+            // 4. Road Surface Micro-Vibrations & Off-Road Bumpiness
+            carPhysics.bobPhase += 0.03 + Math.abs(currentSpeed) * 0.48;
+            const roadRoughness = onRoad ? 0.012 : 0.065;
+            const roadVibrationY = (
+                Math.sin(carPhysics.bobPhase * 1.5) +
+                Math.sin(carPhysics.bobPhase * 3.7) * 0.45 +
+                (onRoad ? 0 : (Math.random() - 0.5) * 0.8)
+            ) * roadRoughness * (0.15 + speedRatio * 0.85);
+
+            const roadVibrationPitch = (
+                Math.cos(carPhysics.bobPhase * 2.1) * 0.3 +
+                (onRoad ? 0 : (Math.random() - 0.5) * 0.5)
+            ) * roadRoughness * speedRatio * 0.35;
+
+            // 5. Engine Idle Rumble / Rev Shake
+            carPhysics.enginePhase += 0.22 + (accel * 0.18);
+            const engineShakeY = Math.sin(carPhysics.enginePhase * 2.0) * (0.003 + accel * 0.005);
+            const engineShakeRoll = Math.cos(carPhysics.enginePhase * 1.5) * (0.002 + accel * 0.004);
+
+            // 6. Impact Shock decay
+            carPhysics.impactShake *= 0.85;
+            const impactY = (Math.random() - 0.5) * carPhysics.impactShake * 0.3;
+            const impactPitch = (Math.random() - 0.5) * carPhysics.impactShake * 0.15;
+            const impactRoll = (Math.random() - 0.5) * carPhysics.impactShake * 0.15;
+
+            // Combine into carBodyGroup transform
+            carBodyGroup.position.y = carPhysics.bodyVert + roadVibrationY + engineShakeY + impactY;
+            carBodyGroup.rotation.x = carPhysics.bodyPitch + roadVibrationPitch + impactPitch;
+            carBodyGroup.rotation.z = carPhysics.bodyRoll + engineShakeRoll + impactRoll;
+
             wheels.forEach(({node, front}) => {
                 node.rotation.x -= carPhysics.speed * .55;
                 if (front) node.rotation.y += (steer * 7 - node.rotation.y) * .15;
